@@ -33,15 +33,15 @@ unsigned long startTime = millis();
 // Botão acionamento interno
 const int botaoPin = 2;
 
-const char *ssid = "REMOVIDO";
-const char *password = "REMOVIDO";
-const char *websocket_server = "ws://10.110.20.192:3010";
+const char *ssid = "your_ssid";
+const char *password = "your_password";
+const char *websocket_server = "ws://your_endpoint";
 using namespace websockets;
 bool websocketConnected = false;
 unsigned long lastReconnectWifiAttempt = 0;
 const unsigned long reconnectWifiInterval = 60000;
 unsigned long lastReconnectAttempt = 0;
-const unsigned long reconnectInterval = 60000;
+const unsigned long reconnectInterval = 20000;
 unsigned long lastPing = 0;
 const unsigned long pingInterval = 40000;
 
@@ -164,7 +164,7 @@ void loop() {
       }
     }
 
-    // Keep-Alive check - Ping para testar conexão a cada 15 segundos
+    // Keep-Alive check
     if (millis() - lastPing > pingInterval) {
       client.ping();
       lastPing = millis();
