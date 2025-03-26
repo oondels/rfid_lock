@@ -16,4 +16,4 @@ RST -> GPIO 16
 D/C -> GPIO 17
 CS  -> GPIO 4
 
-Catraca -> 32
+Relé -> 32
