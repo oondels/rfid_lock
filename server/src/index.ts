@@ -69,7 +69,7 @@ wss.on("connection", (ws: ExtendedWebSocket) => {
   });
 });
 
-const heartBeatInterval = 60000;
+const heartBeatInterval = 20000;
 const interval = setInterval(() => {
   wss.clients.forEach((client) => {
     const ws = client as ExtendedWebSocket;
@@ -165,7 +165,7 @@ const removeRFIDHandler: RequestHandler = async (req: Request, res: Response, ne
 };
 app.post("/api/remove/:client_id", removeRFIDHandler);
 
-const clearRfidsHandler: RequestHandler = (req: Request, res: Response, next: NextFunction) => {
+const clearRfidsHandler: RequestHandler = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { client_id } = req.params;
 
@@ -175,27 +175,16 @@ const clearRfidsHandler: RequestHandler = (req: Request, res: Response, next: Ne
       return;
     }
 
-    client.requestStatus = false;
-    client.send(
-      JSON.stringify({
-        command: "clear-list",
-      })
-    );
+    await sendCommand(client, "clear-list", {});
 
-    setTimeout(() => {
-      if (client.requestStatus) {
-        res.status(201).json({ message: "RFIDs cleared successfully." });
-      } else {
-        res.status(400).json({ message: "Failed to clear RFIDs." });
-      }
-    }, 3000);
+    res.status(201).json({ message: "RFIDs cleared successfully." });
   } catch (error) {
     next(error);
   }
 };
 app.post("/api/clear/:client_id", clearRfidsHandler);
 
-const testConnectionHandler: RequestHandler = (req: Request, res: Response, next: NextFunction) => {
+const testConnectionHandler: RequestHandler = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { client_id } = req.params;
 
@@ -205,27 +194,16 @@ const testConnectionHandler: RequestHandler = (req: Request, res: Response, next
       return;
     }
 
-    client.requestStatus = false;
-    client.send(
-      JSON.stringify({
-        command: "test-connection",
-      })
-    );
+    await sendCommand(client, "test-connection", {});
 
-    setTimeout(() => {
-      if (client.requestStatus) {
-        res.status(200).json({ message: "Test successful" });
-      } else {
-        res.status(400).json({ message: "Failed to connect with client!" });
-      }
-    }, 3000);
+    res.status(200).json({ message: "Test successful" });
   } catch (error) {
     next(error);
   }
 };
 app.get("/api/test-connection/:client_id", testConnectionHandler);
 
-const openLockHandler: RequestHandler = (req: Request, res: Response, next: NextFunction) => {
+const openLockHandler: RequestHandler = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { client_id } = req.params;
     const { verificationKey } = req.body;
@@ -241,20 +219,9 @@ const openLockHandler: RequestHandler = (req: Request, res: Response, next: Next
       return;
     }
 
-    client.requestStatus = false;
-    client.send(
-      JSON.stringify({
-        command: "open",
-      })
-    );
+    await sendCommand(client, "open", {});
 
-    setTimeout(() => {
-      if (client.requestStatus) {
-        res.status(201).json({ message: "Lock opened successfully." });
-      } else {
-        res.status(400).json({ message: "Failed to open lock." });
-      }
-    }, 3000);
+    res.status(201).json({ message: "Lock opened successfully." });
   } catch (error) {
     next(error);
   }
