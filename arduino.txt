@@ -1,0 +1,19 @@
+RFID
+SDA (SS) -> GPIO 5
+SCK -> GPIO 18
+MOSI -> GPIO 23
+MISO -> GPIO 19
+GND -> GND
+3.3V -> 3.3V
+RST -> GPIO 22
+
+Tela Oled SPI
+VCC -> 3.3V
+GND -> GND
+SCL -> (SCK) GPIO 14
+SDA -> (MOSI) GPIO 13
+RST -> GPIO 16
+D/C -> GPIO 17
+CS  -> GPIO 4
+
+Catraca -> 32
