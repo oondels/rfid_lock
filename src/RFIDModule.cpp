@@ -8,6 +8,15 @@ void RFIDModule::begin()
   reader->PCD_Init();
 }
 
+void RFIDModule::loop()
+{
+  if (reader->PICC_IsNewCardPresent() && reader->PICC_ReadCardSerial())
+  {
+    checkCard();
+    reader->PICC_HaltA();
+  }
+}
+
 void RFIDModule::checkCard()
 {
   unsigned long cardId = convertUID(reader->uid.uidByte, reader->uid.size);
@@ -20,17 +29,7 @@ void RFIDModule::checkCard()
     accessCallback(allowed, cardId);
 }
 
-
-void RFIDModule::loop()
-{
-  if (reader->PICC_IsNewCardPresent() && reader->PICC_ReadCardSerial())
-  {
-    checkCard();
-    reader->PICC_HaltA();
-  }
-}
-
-void RFIDModule::setAccessCallback(void (*callback)(bool, unsigned long))
+void RFIDModule::setAccessCallback(void (*callback)(bool success, unsigned long cardId))
 {
   accessCallback = callback;
 }

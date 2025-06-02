@@ -33,12 +33,10 @@ void Actuator::loop()
   if (relayState && openDuration > 0 && (millis() - openTimestamp >= openDuration))
   {
     close();
-    Serial.print("Fechando");
   }
   // Manual open button
   if (isButtonPressed() && !relayState)
   {
-  Serial.println("Abrindo");
     open();
   }
 }
