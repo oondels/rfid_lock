@@ -10,10 +10,10 @@ public:
   bool begin();
   bool loadList();
   bool isAllowed(unsigned long cardId);
+  int addRFIDs(JsonDocument &doc);
+  int removeRFID(unsigned long id);
   bool saveList();
   bool isAuthorized(unsigned long id);
-  void addRFID(unsigned long id);
-  void removeRFID(unsigned long id);
   void clearList();
   std::vector<unsigned long> getAll();
 

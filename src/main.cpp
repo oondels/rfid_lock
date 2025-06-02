@@ -1,12 +1,14 @@
-// #include "Config.h"
-#include "RFIDModule.h"
-#include "Storage.h"
-// #include "WebSocketClient.h"
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include <SPI.h>
+
+// #include "Config.h"
+#include "WebSocketClient.h"
+#include "RFIDModule.h"
+#include "Storage.h"
 #include "Display.h"
-// #include "Actuator.h"
+#include "Actuator.h"
+#include "WifiClient.h"
 
 // Definições Tela Oled
 #define SCREEN_WIDTH 128
@@ -23,17 +25,121 @@
 #define RELAY_PIN 32
 #define BOTAO_PIN 2
 
+// Wifi & Serve connection
+const char *ssid = "DASS-CORP";
+const char *password = "dass7425corp";
+const char *WEBSOCKET_SERVER = "ws://10.110.21.105:3010";
+
 // Instâncias globais dos módulos
 MFRC522 rfid(SS_PIN, RST_PIN);
-
 SPIClass SPI_OLED(HSPI);
 Adafruit_SSD1306 oled(SCREEN_WIDTH, SCREEN_HEIGHT, &SPI_OLED, OLED_DC, OLED_RST, OLED_CS);
 Display display(&oled);
-
 Storage storage;
 Actuator actuator(RELAY_PIN, BOTAO_PIN);
 RFIDModule rfidModule(&rfid, &storage, &actuator);
-// WebSocketClient wsClient(WEBSOCKET_SERVER, &storage);
+WebSocketClient wsClient(WEBSOCKET_SERVER, &storage);
+WifiClient wifiClient(ssid, password, 30000);
+
+bool checkCommandData(JsonDocument &doc, String param)
+{
+  StaticJsonDocument<128> respDoc;
+  if (!doc.containsKey("client") || !doc.containsKey(param))
+  {
+    respDoc["error"] = "Invalid Command Payload";
+    return false;
+  }
+  return true;
+}
+
+// --- Funções de tratamento de comandos WebSocket ---
+void sendErrorResponse(const String &client, const String &command, const String &errorMsg, String &response)
+{
+  StaticJsonDocument<128> respDoc;
+  if (client != "")
+    respDoc["callBack"]["client"] = client;
+  if (command != "")
+    respDoc["callBack"]["command"] = command;
+  respDoc["error"] = errorMsg;
+  respDoc["callBack"]["status"] = "error";
+  serializeJson(respDoc, response);
+}
+
+void handleAddRfidsCommand(JsonDocument &doc, String &response)
+{
+  String client = doc["client"] | "";
+  String command = doc["command"] | "add_rfids";
+  if (!doc.containsKey("rfids"))
+  {
+    sendErrorResponse(client, command, "Missing rfids field", response);
+    return;
+  }
+
+  int added = storage.addRFIDs(doc);
+  StaticJsonDocument<128> respDoc;
+  respDoc["callBack"]["client"] = client;
+  respDoc["callBack"]["command"] = command;
+  if (added <= 0)
+  {
+    respDoc["error"] = "Failed to add rfids";
+    respDoc["callBack"]["status"] = "error";
+  }
+  else
+  {
+    respDoc["added"] = added;
+    respDoc["callBack"]["status"] = "success";
+    display.showMessage("Colaborador adicionado!", "");
+    delay(1000);
+  }
+  serializeJson(respDoc, response);
+}
+
+void handleRemoveRfidCommand(JsonDocument &doc, String &response)
+{
+  String client = doc["client"] | "";
+  String command = doc["command"] | "remove_rfid";
+  if (!doc.containsKey("rfid"))
+  {
+    sendErrorResponse(client, command, "Missing rfid field", response);
+    return;
+  }
+
+  unsigned long rfid = doc["rfid"].as<unsigned long>();
+  if (storage.removeRFID(rfid) > 0)
+  {
+    StaticJsonDocument<128> respDoc;
+    respDoc["callBack"]["client"] = client;
+    respDoc["callBack"]["command"] = command;
+    respDoc["callBack"]["status"] = "success";
+    display.showMessage("Colaborador", "removido!");
+    serializeJson(respDoc, response);
+  }
+  else
+  {
+    sendErrorResponse(client, command, "Colaborador nao removido!", response);
+    display.showMessage("Erro", "Nao removido!");
+  }
+  delay(1000);
+}
+
+void handleWebSocketCommand(const String &command, JsonDocument &doc)
+{
+  String response;
+  if (command == "add_rfids")
+  {
+    handleAddRfidsCommand(doc, response);
+  }
+  else if (command == "remove_rfid")
+  {
+    handleRemoveRfidCommand(doc, response);
+  }
+  else
+  {
+    String client = doc["client"] | "";
+    sendErrorResponse(client, command, "Unknown command", response);
+  }
+  wsClient.sendEvent(response);
+}
 
 void setup()
 {
@@ -46,9 +152,9 @@ void setup()
     while (true)
       ;
   }
+
   display.showMessage("Configurando", "Porta RFID...");
-  Serial.println(F("Configurando porta RFID"));
-  delay(1000);
+  delay(700);
 
   // Inicialização dos módulos
   if (!storage.begin())
@@ -58,33 +164,46 @@ void setup()
   }
 
   display.showMessage("Armazenamento", "Carregando dados");
+  delay(500);
   if (!storage.loadList())
   {
     display.showMessage("Erro", "Falha ao carregar dados");
     return;
   }
 
-  display.showMessage("RFID", "Configurando Leitor...");
+  display.showMessage("WIFI", "Conectando Wifi");
+  wifiClient.begin();
+  display.showMessage("WIFI", wifiClient.checkConnection() ? "Conexao Estabelecida" : "Falha na conexao");
+  delay(500);
+
+  display.showMessage("RFID", "Configuracoes Finais...");
+  delay(500);
   SPI.begin(18, 19, 23, SS_PIN);
   rfidModule.begin();
   actuator.begin();
-  // wsClient.begin();
+
+  wsClient.begin();
 
   // Registrar callbacks se necessário
-  rfidModule.setAccessCallback([](bool success, unsigned long cardId)
-                               {
-      display.showAccess(success);
-      if(success) actuator.open(); });
-  // wsClient.setCommandCallback([](const String& command, const JsonDocument& doc){
-  //     // Delegar ao módulo Storage ou Actuator conforme comando
-  // });
+  rfidModule.setAccessCallback([](bool sucesso, unsigned long cardId)
+                               { display.showAccess(sucesso, ""); });
+
+  // Callback centralizado e padronizado para comandos WebSocket
+  wsClient.setCommandCallback(handleWebSocketCommand);
 }
 
 void loop()
 {
-  display.showMessage("Aproxime", "O Cracha");
   rfidModule.loop();
   actuator.loop();
-  // wsClient.loop();
-  delay(700);
+  bool wsStatus = wsClient.loop();
+  bool wifiStatus = wifiClient.loop();
+
+  display.defaultMessage(wifiStatus, wsStatus);
+
+  if (!wifiStatus)
+  {
+    wifiClient.reconnect();
+  }
+  delay(100);
 }
