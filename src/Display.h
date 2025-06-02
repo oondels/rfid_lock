@@ -7,9 +7,9 @@
 class Display {
 public:
     Display(Adafruit_SSD1306* display);
-    void showStatus(const String& line1, const String& line2 = "");
     void showAccess(bool authorized, const String& name = "");
     void showMessage(const String& message, const String &message2);
+    void defaultMessage(bool wifi, bool ws);
 private:
     Adafruit_SSD1306* display;
     static const unsigned char check_icon[];

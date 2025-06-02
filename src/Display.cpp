@@ -1,25 +1,8 @@
 #include "Display.h"
 
-Display::Display(Adafruit_SSD1306 *display) : display(display) {}
+const char *displayTitle = "Dass Automacao \n Controle";
 
-void Display::showStatus(const String &line1, const String &line2)
-{
-  display->clearDisplay();
-  display->drawRect(0, 0, SCREEN_WIDTH, 30, SSD1306_WHITE);
-  display->setTextSize(1);
-  display->setTextColor(SSD1306_WHITE);
-  display->setCursor(5, 10);
-  display->println(F("Tranca Inteligente"));
-  display->setTextSize(1);
-  display->setCursor(10, 45);
-  display->println(line1);
-  if (line2.length() > 0)
-  {
-    display->setCursor(10, 55);
-    display->println(line2);
-  }
-  display->display();
-}
+Display::Display(Adafruit_SSD1306 *display) : display(display) {}
 
 void Display::showAccess(bool authorized, const String &name)
 {
@@ -28,12 +11,12 @@ void Display::showAccess(bool authorized, const String &name)
   display->setTextSize(1);
   display->setTextColor(SSD1306_WHITE);
   display->setCursor(5, 10);
-  display->println(F("Tranca Inteligente"));
+  display->println(F(displayTitle));
   display->setTextSize(1);
   display->setCursor(5, 45);
   display->println(name.length() > 0 ? name : "Colaborador");
   display->setCursor(5, 55);
-  display->println(authorized ? "Liberado!" : "Nao Liberado!");
+  display->println(authorized ? "Acesso Liberado!" : "Acesso Negado!");
   display->drawBitmap(110, 45, authorized ? check_icon : cross_icon, 8, 8, SSD1306_WHITE);
   display->display();
 }
@@ -45,7 +28,7 @@ void Display::showMessage(const String &message, const String &message2)
   display->setTextSize(1);
   display->setTextColor(SSD1306_WHITE);
   display->setCursor(5, 10);
-  display->println(F("Tranca Inteligente"));
+  display->println(F(displayTitle));
   display->setTextSize(1);
   display->setCursor(10, 45);
   display->println(message);
@@ -54,6 +37,32 @@ void Display::showMessage(const String &message, const String &message2)
     display->setCursor(10, 55);
     display->println(message2);
   }
+  display->display();
+}
+
+void Display::defaultMessage(bool wifi, bool ws)
+{
+  display->clearDisplay();
+  display->drawRect(0, 0, SCREEN_WIDTH, 30, SSD1306_WHITE);
+  display->setTextSize(1);
+  display->setTextColor(SSD1306_WHITE);
+  display->setCursor(5, 10);
+  display->println(F(displayTitle));
+  display->setTextSize(1);
+  display->setCursor(10, 35);
+  display->println("Aproxime o cracha");
+
+  // display->setCursor(10, 45);
+  // display->println("Do Leitor");
+
+  char connectionStatusMessage[32];
+  snprintf(connectionStatusMessage, sizeof(connectionStatusMessage),
+           "Ws: %s - Wifi: %s", ws ? "on" : "off", wifi ? "on" : "off");
+  
+  display->setCursor(10, 55);
+  display->setTextSize(0.5);
+  display->println(connectionStatusMessage);
+
   display->display();
 }
 
