@@ -4,8 +4,9 @@ const char *displayTitle = "Dass Automacao \n Controle";
 
 Display::Display(Adafruit_SSD1306 *display) : display(display) {}
 
-void Display::showAccess(bool authorized, const String &name)
+void Display::showAccess(bool authorized, const String &name, unsigned long delay)
 {
+
   display->clearDisplay();
   display->drawRect(0, 0, SCREEN_WIDTH, 30, SSD1306_WHITE);
   display->setTextSize(1);
@@ -19,10 +20,21 @@ void Display::showAccess(bool authorized, const String &name)
   display->println(authorized ? "Acesso Liberado!" : "Acesso Negado!");
   display->drawBitmap(110, 45, authorized ? check_icon : cross_icon, 8, 8, SSD1306_WHITE);
   display->display();
+
+  if (delay > 0)
+  {
+    this->messageDelay = delay;
+  }
+  else
+  {
+    this->messageDelay = 1000;
+  }
+  this->lastMessageTime = millis();
 }
 
-void Display::showMessage(const String &message, const String &message2)
+void Display::showMessage(const String &message, const String &message2, unsigned long delay)
 {
+
   display->clearDisplay();
   display->drawRect(0, 0, SCREEN_WIDTH, 30, SSD1306_WHITE);
   display->setTextSize(1);
@@ -38,10 +50,25 @@ void Display::showMessage(const String &message, const String &message2)
     display->println(message2);
   }
   display->display();
+
+  if (delay > 0)
+  {
+    this->messageDelay = delay;
+  }
+  else
+  {
+    this->messageDelay = 1000;
+  }
+  this->lastMessageTime = millis();
 }
 
 void Display::defaultMessage(bool wifi, bool ws)
 {
+  if (millis() - this->lastMessageTime < this->messageDelay)
+  {
+    return;
+  }
+
   display->clearDisplay();
   display->drawRect(0, 0, SCREEN_WIDTH, 30, SSD1306_WHITE);
   display->setTextSize(1);
@@ -58,7 +85,7 @@ void Display::defaultMessage(bool wifi, bool ws)
   char connectionStatusMessage[32];
   snprintf(connectionStatusMessage, sizeof(connectionStatusMessage),
            "Ws: %s - Wifi: %s", ws ? "on" : "off", wifi ? "on" : "off");
-  
+
   display->setCursor(10, 55);
   display->setTextSize(0.5);
   display->println(connectionStatusMessage);

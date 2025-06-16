@@ -186,7 +186,7 @@ void setup()
 
   // Registrar callbacks se necessário
   rfidModule.setAccessCallback([](bool sucesso, unsigned long cardId)
-                               { display.showAccess(sucesso, ""); });
+                               { display.showAccess(sucesso, "", 1000); });
 
   // Callback centralizado e padronizado para comandos WebSocket
   wsClient.setCommandCallback(handleWebSocketCommand);
