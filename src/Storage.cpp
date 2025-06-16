@@ -74,7 +74,7 @@ int Storage::addRFIDs(JsonDocument &doc)
   }
 
   // Salva lista na memória
-  if (!this->saveList())
+  if (!this->saveList(this->allowedRFIDs))
   {
     return -1;
   }
@@ -99,7 +99,7 @@ int Storage::removeRFID(unsigned long id)
   }
 
   // Salva lista na memória
-  if (count > 0 && !this->saveList())
+  if (count > 0 && !this->saveList(this->allowedRFIDs))
   {
     Serial.println("ERRO: Falha ao salvar lista!");
     return -1;
@@ -108,12 +108,12 @@ int Storage::removeRFID(unsigned long id)
   return count;
 }
 
-bool Storage::saveList()
+bool Storage::saveList(std::vector<unsigned long> listToSave)
 {
   StaticJsonDocument<1024> doc;
   JsonArray array = doc.createNestedArray("rfids");
 
-  for (unsigned long rfid : allowedRFIDs)
+  for (unsigned long rfid : listToSave)
   {
     array.add(rfid);
   }

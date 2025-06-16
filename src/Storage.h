@@ -6,16 +6,14 @@
 class Storage
 {
 public:
+  std::vector<unsigned long> allowedRFIDs;
   Storage();
   bool begin();
   bool loadList();
   bool isAllowed(unsigned long cardId);
   int addRFIDs(JsonDocument &doc);
   int removeRFID(unsigned long id);
-  bool saveList();
+  bool saveList(std::vector<unsigned long> listToSave);
   void clearList();
   std::vector<unsigned long> getAll();
-
-private:
-  std::vector<unsigned long> allowedRFIDs;
 };
