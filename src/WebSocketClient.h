@@ -1,12 +1,13 @@
 #pragma once
 #include <ArduinoWebsockets.h>
 #include "Storage.h"
+#include "Actuator.h"
 using namespace websockets;
 
 class WebSocketClient
 {
 public:
-  WebSocketClient(const char *server, Storage *storage);
+  WebSocketClient(const char *server, Storage *storage, Actuator *actuator);
   void begin();
   bool loop();
   void checkConnection();
@@ -16,11 +17,13 @@ public:
   bool addRfid(JsonDocument &doc, String &response);
   bool removeRfid(JsonDocument &doc, String &response);
   void getAllRfid(JsonDocument &doc, String &response);
+  void openDoor(JsonDocument &doc, String &response);
 
 private:
   WebsocketsClient client;
   const char *serverUrl;
   Storage *storage;
+  Actuator *actuator;
   void (*commandCallback)(const String &, JsonDocument &) = nullptr;
   void (*statusCallback)(bool) = nullptr;
 };

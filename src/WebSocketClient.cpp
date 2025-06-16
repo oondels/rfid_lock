@@ -5,8 +5,8 @@ const unsigned long pingInterval = 40000;
 bool websocketConnected = false;
 bool aswerEvent = false;
 
-WebSocketClient::WebSocketClient(const char *server, Storage *storage)
-    : serverUrl(server), storage(storage) {}
+WebSocketClient::WebSocketClient(const char *server, Storage *storage, Actuator *actuator)
+    : serverUrl(server), storage(storage), actuator(actuator) {}
 
 void WebSocketClient::begin()
 {
@@ -182,6 +182,20 @@ void WebSocketClient::getAllRfid(JsonDocument &doc, String &response)
   {
     rfidsArray.add(rfid);
   }
+
+  serializeJson(respDoc, response);
+}
+
+void WebSocketClient::openDoor(JsonDocument &doc, String &response)
+{
+  String client = doc["client"] | "";
+  String command = doc["command"] | "open_door";
+  StaticJsonDocument<128> respDoc;
+  respDoc["callBack"]["client"] = client;
+  respDoc["callBack"]["command"] = command;
+
+  actuator->open();
+  respDoc["callBack"]["status"] = "success";
 
   serializeJson(respDoc, response);
 }

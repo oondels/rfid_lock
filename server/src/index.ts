@@ -69,14 +69,11 @@ wss.on("connection", (ws: ExtendedWebSocket) => {
       //! Melhorar tratamento de resposta do cliente e fazer respostas personalizadas
       if (data.callBack && client) {
         logger.info("Client", `Response from client: ${data.callBack.client} for command: ${data?.callBack?.command}`)
-        
+
         client.requestStatus = true;
       }
 
-      console.log("Data");
       console.log(data);
-      
-      
     } catch (e) {
       console.error("Error parsing client message!", e);
     }
@@ -137,6 +134,25 @@ const sendCommand = (client: ExtendedWebSocket, command: string, payload: object
     }, 100);
   });
 };
+
+const getAllRFIDHandler: RequestHandler = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { client_id } = req.params;
+
+    const client = connectedClients.get(client_id);
+    if (!client || client.readyState !== WebSocket.OPEN) {
+      res.status(404).json({ message: "Client is not connected." });
+      return;
+    }
+
+    await sendCommand(client, "get_all", { client: client_id });
+
+    res.status(200).json({ message: "RFIDs retrieved successfully." });
+  } catch (error) {
+    next(error);
+  }
+};
+app.get("/api/get_all/:client_id", getAllRFIDHandler);
 
 const addRFIDHandler: RequestHandler = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -242,7 +258,7 @@ const openLockHandler: RequestHandler = async (req: Request, res: Response, next
       return;
     }
 
-    await sendCommand(client, "open", {});
+    await sendCommand(client, "open_door", {});
 
     res.status(201).json({ message: "Lock opened successfully." });
   } catch (error) {

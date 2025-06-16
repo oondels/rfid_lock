@@ -38,9 +38,8 @@ Display display(&oled);
 Storage storage;
 Actuator actuator(RELAY_PIN, BOTAO_PIN);
 RFIDModule rfidModule(&rfid, &storage, &actuator);
-WebSocketClient wsClient(WEBSOCKET_SERVER, &storage);
+WebSocketClient wsClient(WEBSOCKET_SERVER, &storage, &actuator);
 WifiClient wifiClient(ssid, password, 30000);
-
 
 void handleWebSocketCommand(const String &command, JsonDocument &doc)
 {
@@ -59,6 +58,11 @@ void handleWebSocketCommand(const String &command, JsonDocument &doc)
   {
     wsClient.getAllRfid(doc, response);
     display.showMessage("Enviando", "Lista", 1500);
+  }
+  else if (command == "open_door")
+  {
+    wsClient.openDoor(doc, response);
+    display.showMessage("Porta", "Aberta!", 1000);
   }
   else
   {
