@@ -146,7 +146,6 @@ void WebSocketClient::setCommandCallback(void (*callback)(const String &command,
 
 void WebSocketClient::sendHeartbeat() {
   if (websocketConnected) {
-    Serial.println("Sending heartbeat...");
     StaticJsonDocument<64> heartbeatDoc;
     heartbeatDoc["type"] = "heartbeat";
     heartbeatDoc["timestamp"] = millis();

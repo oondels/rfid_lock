@@ -144,6 +144,10 @@ app.get("/", (req: Request, res: Response) => {
 const sendCommand = (client: ExtendedWebSocket, command: string, payload: object): Promise<void> => {
   return new Promise((resolve, reject) => {
     client.requestStatus = false;
+    console.log("Command");
+    console.log({ command, ...payload, });
+    
+    
     client.send(JSON.stringify({ command, ...payload, }));
 
     const timer = setTimeout(() => {
@@ -183,6 +187,9 @@ const getLastAccess: RequestHandler = async (req: Request, res: Response, next: 
   try {
     const { client_id } = req.params;
 
+    console.log(`Getting last access for client: ${client_id}`);
+    
+
     const client = connectedClients.get(client_id);
     if (!client || client.readyState !== WebSocket.OPEN) {
       res.status(404).json({ message: "Client is not connected." });
@@ -198,6 +205,26 @@ const getLastAccess: RequestHandler = async (req: Request, res: Response, next: 
 };
 app.get("/api/get_access_history/:client_id", getLastAccess);
 
+const clearHistory: RequestHandler = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { client_id } = req.params;
+
+    console.log(`Clearing history for client: ${client_id}`);
+    
+
+    const client = connectedClients.get(client_id);
+    if (!client || client.readyState !== WebSocket.OPEN) {
+      res.status(404).json({ message: "Client is not connected." });
+      return;
+    }
+    await sendCommand(client, "clear_history", { client: client_id });
+
+    res.status(200).json({ message: "History Cleared" });
+  } catch (error) {
+    next(error);
+  }
+};
+app.get("/api/clear_history/:client_id", clearHistory);
 
 const addRFIDHandler: RequestHandler = async (req: Request, res: Response, next: NextFunction) => {
   try {

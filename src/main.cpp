@@ -62,12 +62,14 @@ void handleWebSocketCommand(const String &command, JsonDocument &doc)
   else if (command == "open_door")
   {
     wsClient.openDoor(doc, response);
-    display.showMessage("Porta", "Aberta!", 1000);
   }
   else if (command == "get_access_history")
   {
     wsClient.getAccessHistory(doc, response);
-    display.showMessage("Enviando", "Historico", 1500);
+  }
+  else if (command == "clear_history")
+  {
+    rfidModule.clearAccessHistory(doc, response);
   }
   else
   {
@@ -75,6 +77,7 @@ void handleWebSocketCommand(const String &command, JsonDocument &doc)
     wsClient.sendErrorResponse(client, command, "Unknown command", response);
     return;
   }
+  Serial.print(response);
   wsClient.sendEvent(response);
 }
 

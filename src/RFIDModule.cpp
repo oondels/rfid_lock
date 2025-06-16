@@ -44,12 +44,12 @@ void RFIDModule::checkCard()
 void RFIDModule::addToAccessHistory(unsigned long cardId)
 {
   accessedCards.push_back(cardId);
-  
+
   if (accessedCards.size() > MAX_ACCESS_HISTORY)
   {
     accessedCards.erase(accessedCards.begin());
   }
-  
+
   storage->saveAccessHistory(accessedCards);
   Serial.print("Access history size: ");
   Serial.println(accessedCards.size());
@@ -65,8 +65,17 @@ unsigned long RFIDModule::getLastAccessedCardId() const
   return lastAccessedCardId;
 }
 
-void RFIDModule::clearAccessHistory()
+void RFIDModule::clearAccessHistory(JsonDocument &doc, String &response)
 {
+  String client = doc["client"] | "";
+  String command = doc["command"] | "get_access_history";
+  StaticJsonDocument<256> respDoc;
+  respDoc["callBack"]["client"] = client;
+  respDoc["callBack"]["command"] = command;
+  respDoc["callBack"]["status"] = "success";
+  respDoc["callBack"]["message"] = "Access history cleared";
+  serializeJson(respDoc, response);
+  
   accessedCards.clear();
   lastAccessedCardId = 0;
   // Save empty history to persistent storage

@@ -14,7 +14,7 @@ public:
   void setAccessCallback(void (*callback)(bool success, unsigned long cardId));
   std::vector<unsigned long> getLastAccesses() const;
   unsigned long getLastAccessedCardId() const;
-  void clearAccessHistory();
+  void clearAccessHistory(JsonDocument &doc, String &response);
 
 private:
   MFRC522* reader;
