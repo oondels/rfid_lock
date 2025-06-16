@@ -10,8 +10,12 @@ public:
   void begin();
   bool loop();
   void checkConnection();
-  void sendEvent(const String &eventJson);
   void setCommandCallback(void (*callback)(const String &command, JsonDocument &doc));
+  void sendEvent(const String &eventJson);
+  void sendErrorResponse(const String &client, const String &command, const String &errorMsg, String &response);
+  bool addRfid(JsonDocument &doc, String &response);
+  bool removeRfid(JsonDocument &doc, String &response);
+  void getAllRfid(JsonDocument &doc, String &response);
 
 private:
   WebsocketsClient client;

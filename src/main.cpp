@@ -41,128 +41,30 @@ RFIDModule rfidModule(&rfid, &storage, &actuator);
 WebSocketClient wsClient(WEBSOCKET_SERVER, &storage);
 WifiClient wifiClient(ssid, password, 30000);
 
-bool checkCommandData(JsonDocument &doc, String param)
-{
-  StaticJsonDocument<128> respDoc;
-  if (!doc.containsKey("client") || !doc.containsKey(param))
-  {
-    respDoc["error"] = "Invalid Command Payload";
-    return false;
-  }
-  return true;
-}
-
-// --- Funções de tratamento de comandos WebSocket ---
-void sendErrorResponse(const String &client, const String &command, const String &errorMsg, String &response)
-{
-  StaticJsonDocument<128> respDoc;
-  if (client != "")
-    respDoc["callBack"]["client"] = client;
-  if (command != "")
-    respDoc["callBack"]["command"] = command;
-  respDoc["error"] = errorMsg;
-  respDoc["callBack"]["status"] = "error";
-  serializeJson(respDoc, response);
-}
-
-void handleAddRfidsCommand(JsonDocument &doc, String &response)
-{
-  String client = doc["client"] | "";
-  String command = doc["command"] | "add_rfids";
-  if (!doc.containsKey("rfids"))
-  {
-    sendErrorResponse(client, command, "Missing rfids field", response);
-    return;
-  }
-
-  int added = storage.addRFIDs(doc);
-  StaticJsonDocument<128> respDoc;
-  respDoc["callBack"]["client"] = client;
-  respDoc["callBack"]["command"] = command;
-  if (added <= 0)
-  {
-    respDoc["error"] = "Failed to add rfids";
-    respDoc["callBack"]["status"] = "error";
-  }
-  else
-  {
-    respDoc["added"] = added;
-    respDoc["callBack"]["status"] = "success";
-    display.showMessage("Colaborador", "adicionado!");
-    delay(1000);
-  }
-  serializeJson(respDoc, response);
-}
-
-void handleRemoveRfidCommand(JsonDocument &doc, String &response)
-{
-  String client = doc["client"] | "";
-  String command = doc["command"] | "remove_rfid";
-  if (!doc.containsKey("rfid"))
-  {
-    sendErrorResponse(client, command, "Missing rfid field", response);
-    return;
-  }
-
-  unsigned long rfid = doc["rfid"].as<unsigned long>();
-  if (storage.removeRFID(rfid) > 0)
-  {
-    StaticJsonDocument<128> respDoc;
-    respDoc["callBack"]["client"] = client;
-    respDoc["callBack"]["command"] = command;
-    respDoc["callBack"]["status"] = "success";
-    display.showMessage("Colaborador", "removido!");
-    serializeJson(respDoc, response);
-  }
-  else
-  {
-    sendErrorResponse(client, command, "Colaborador nao removido!", response);
-    display.showMessage("Erro", "Nao removido!");
-  }
-  delay(1000);
-}
-
-void handleGetAllCommand(JsonDocument &doc, String &response)
-{
-  String client = doc["client"] | "";
-  String command = doc["command"] | "get_all";
-
-  std::vector<unsigned long> rfids_list = storage.getAll();
-  StaticJsonDocument<128> respDoc;
-  respDoc["callback"]["client"] = client;
-  respDoc["callback"]["command"] = command;
-
-  // Cria array json para lista de rfids
-  JsonArray rfidsArray = respDoc["callback"]["rfids_list"].to<JsonArray>();
-  // Adiciona cada rfid ao array
-  for (unsigned long rfid: rfids_list)
-  {
-    rfidsArray.add(rfid);
-  }
-
-  display.showMessage("Enviando", "Lista", 1500);
-  serializeJson(respDoc, response);
-}
 
 void handleWebSocketCommand(const String &command, JsonDocument &doc)
 {
   String response;
   if (command == "add_rfids")
   {
-    handleAddRfidsCommand(doc, response);
+    bool add = wsClient.addRfid(doc, response);
+    display.showMessage("Colaborador", add ? "adicionado!" : "nao adicionado!");
   }
   else if (command == "remove_rfid")
   {
-    handleRemoveRfidCommand(doc, response);
+    bool remove = wsClient.removeRfid(doc, response);
+    display.showMessage("Colaborador", remove ? "removido!" : "nao removido!");
   }
   else if (command == "get_all")
   {
-    handleGetAllCommand(doc, response);
+    wsClient.getAllRfid(doc, response);
+    display.showMessage("Enviando", "Lista", 1500);
   }
   else
   {
     String client = doc["client"] | "";
-    sendErrorResponse(client, command, "Unknown command", response);
+    wsClient.sendErrorResponse(client, command, "Unknown command", response);
+    return;
   }
   wsClient.sendEvent(response);
 }

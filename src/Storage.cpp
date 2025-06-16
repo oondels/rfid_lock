@@ -91,8 +91,6 @@ int Storage::removeRFID(unsigned long id)
     {
       it = allowedRFIDs.erase(it); // erase retorna o próximo iterador válido
       count++;
-      Serial.print("Removido: ");
-      Serial.println(id);
     }
     else
     {
@@ -101,8 +99,9 @@ int Storage::removeRFID(unsigned long id)
   }
 
   // Salva lista na memória
-  if (!this->saveList())
+  if (count > 0 && !this->saveList())
   {
+    Serial.println("ERRO: Falha ao salvar lista!");
     return -1;
   }
 

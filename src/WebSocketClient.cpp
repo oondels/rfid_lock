@@ -89,3 +89,99 @@ void WebSocketClient::setCommandCallback(void (*callback)(const String &command,
     String command = doc["command"] | "";
     commandCallback(command, doc); });
 }
+
+void WebSocketClient::sendErrorResponse(const String &client, const String &command, const String &errorMsg, String &response)
+{
+  StaticJsonDocument<128> respDoc;
+  if (client != "")
+    respDoc["callBack"]["client"] = client;
+  if (command != "")
+    respDoc["callBack"]["command"] = command;
+  respDoc["error"] = errorMsg;
+  respDoc["callBack"]["status"] = "error";
+  serializeJson(respDoc, response);
+}
+
+bool WebSocketClient::addRfid(JsonDocument &doc, String &response)
+{
+  bool status = false;
+  String client = doc["client"] | "";
+  String command = doc["command"] | "add_rfids";
+  if (!doc.containsKey("rfids"))
+  {
+    this->sendErrorResponse(client, command, "Missing rfids field", response);
+    return status;
+  }
+
+  int added = storage->addRFIDs(doc);
+  StaticJsonDocument<128> respDoc;
+  respDoc["callBack"]["client"] = client;
+  respDoc["callBack"]["command"] = command;
+  if (added <= 0)
+  {
+    respDoc["error"] = "Failed to add rfids";
+    respDoc["callBack"]["status"] = "error";
+  }
+  else
+  {
+    respDoc["added"] = added;
+    respDoc["callBack"]["status"] = "success";
+    status = true;
+  }
+
+  serializeJson(respDoc, response);
+  return status;
+}
+
+bool WebSocketClient::removeRfid(JsonDocument &doc, String &response)
+{
+  bool status = false;
+  StaticJsonDocument<128> respDoc;
+
+  String client = doc["client"] | "";
+  String command = doc["command"] | "remove_rfid";
+  respDoc["callBack"]["client"] = client;
+  respDoc["callBack"]["command"] = command;
+  if (!doc.containsKey("rfid"))
+  {
+    this->sendErrorResponse(client, command, "Missing rfid field", response);
+    return status;
+  }
+
+  unsigned long rfid = doc["rfid"].as<unsigned long>();
+  int removeResult = storage->removeRFID(rfid);
+
+  if (removeResult > 0)
+  {
+    respDoc["callBack"]["status"] = "success";
+    status = true;
+  }
+  else
+  {
+    respDoc["callBack"]["status"] = "error";
+    respDoc["error"] = "Colaborador nao removido!";
+  }
+
+  serializeJson(respDoc, response);
+  return status;
+}
+
+void WebSocketClient::getAllRfid(JsonDocument &doc, String &response)
+{
+  String client = doc["client"] | "";
+  String command = doc["command"] | "get_all";
+  StaticJsonDocument<128> respDoc;
+  respDoc["callBack"]["client"] = client;
+  respDoc["callBack"]["command"] = command;
+
+  std::vector<unsigned long> rfids_list = storage->getAll();
+  // Cria array json para lista de rfids
+  JsonArray rfidsArray = respDoc["callBack"]["rfids_list"].to<JsonArray>();
+  // Adiciona cada rfid ao array
+  for (unsigned long rfid : rfids_list)
+  {
+    rfidsArray.add(rfid);
+  }
+
+  serializeJson(respDoc, response);
+}
