@@ -11,6 +11,7 @@ interface ExtendedWebSocket extends WsWebSocket {
   id?: string;
   requestStatus?: boolean;
   isAlive?: boolean;
+  lastHeartBeat: number;
 }
 
 const app = express();
@@ -23,11 +24,16 @@ app.use(cors());
 app.use(express.json());
 
 let connectedClients = new Map<string, ExtendedWebSocket>();
+const heartBeatInterval = 10000;
+const clientTimeout = 15000;
+
 wss.on("connection", (ws: ExtendedWebSocket) => {
   ws.isAlive = true;
+  ws.lastHeartBeat = Date.now();
 
   ws.on("pong", () => {
     ws.isAlive = true;
+    ws.lastHeartBeat = Date.now();
   });
 
   ws.on("message", (msg: Buffer) => {
@@ -37,8 +43,14 @@ wss.on("connection", (ws: ExtendedWebSocket) => {
     try {
       const data = JSON.parse(message);
 
+      // Handle heartbeat from client
+      if (data.type === 'heartbeat') {
+        ws.isAlive = true;
+        ws.lastHeartBeat = Date.now();
+        ws.send(JSON.stringify({ type: 'heartbeat_ack', timeStamp: Date.now() }))
+        return;
+      }
 
-      //! Verificar bug de client estar conectado mas nao disponivel para receber mensagens
       if (data.nome) {
         if (connectedClients.has(data.nome)) {
           logger.warn("Client", `Client ${data.nome} already connected...`);
@@ -48,10 +60,6 @@ wss.on("connection", (ws: ExtendedWebSocket) => {
           logger.info("Client", `New client connected: ${ws.id}`);
           connectedClients.set(data.nome, ws);
         }
-
-        // console.log("Clients: ", connectedClients.keys());
-        // console.log("Clients count: ", connectedClients.size);
-
       }
       client = connectedClients.get(ws.id as string);
 
@@ -85,12 +93,30 @@ wss.on("connection", (ws: ExtendedWebSocket) => {
       logger.info("Client", `Client disconnected: ${ws.id}`);
     }
   });
+
+  ws.on("error", (error) => {
+    logger.error("Client", `WebSocket error for ${ws.id}: ${error.message}`);
+    if (ws.id) {
+      connectedClients.delete(ws.id);
+    }
+  });
 });
 
-const heartBeatInterval = 20000;
 const interval = setInterval(() => {
+  const now = Date.now();
+
   wss.clients.forEach((client) => {
     const ws = client as ExtendedWebSocket;
+
+    if (now - ws.lastHeartBeat > clientTimeout) {
+      if (ws.id) {
+        connectedClients.delete(ws.id);
+        logger.info("Client", `Client removed because of timeout: ${ws.id}`);
+      }
+
+      ws.terminate();
+      return;
+    }
 
     if (!ws.isAlive) {
       if (ws.id) {
@@ -113,7 +139,6 @@ wss.on("close", () => {
 app.get("/", (req: Request, res: Response) => {
   res.send("Server is running.");
 });
-
 
 // Send a especific command to a client, and wait for asnwer
 const sendCommand = (client: ExtendedWebSocket, command: string, payload: object): Promise<void> => {
@@ -153,6 +178,26 @@ const getAllRFIDHandler: RequestHandler = async (req: Request, res: Response, ne
   }
 };
 app.get("/api/get_all/:client_id", getAllRFIDHandler);
+
+const getLastAccess: RequestHandler = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { client_id } = req.params;
+
+    const client = connectedClients.get(client_id);
+    if (!client || client.readyState !== WebSocket.OPEN) {
+      res.status(404).json({ message: "Client is not connected." });
+      return;
+    }
+
+    await sendCommand(client, "get_access_history", { client: client_id });
+
+    res.status(200).json({ message: "Last Access retrieved successfully." });
+  } catch (error) {
+    next(error);
+  }
+};
+app.get("/api/get_access_history/:client_id", getLastAccess);
+
 
 const addRFIDHandler: RequestHandler = async (req: Request, res: Response, next: NextFunction) => {
   try {

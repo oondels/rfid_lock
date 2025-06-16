@@ -38,7 +38,7 @@ Display display(&oled);
 Storage storage;
 Actuator actuator(RELAY_PIN, BOTAO_PIN);
 RFIDModule rfidModule(&rfid, &storage, &actuator);
-WebSocketClient wsClient(WEBSOCKET_SERVER, &storage, &actuator);
+WebSocketClient wsClient(WEBSOCKET_SERVER, &storage, &actuator, &rfidModule);
 WifiClient wifiClient(ssid, password, 30000);
 
 void handleWebSocketCommand(const String &command, JsonDocument &doc)
@@ -64,6 +64,11 @@ void handleWebSocketCommand(const String &command, JsonDocument &doc)
     wsClient.openDoor(doc, response);
     display.showMessage("Porta", "Aberta!", 1000);
   }
+  else if (command == "get_access_history")
+  {
+    wsClient.getAccessHistory(doc, response);
+    display.showMessage("Enviando", "Historico", 1500);
+  }
   else
   {
     String client = doc["client"] | "";
@@ -84,6 +89,10 @@ void setup()
     while (true)
       ;
   }
+  
+  // Initialize EEPROM
+  EEPROM.begin(Storage::EEPROM_SIZE);
+  Serial.println("EEPROM initialized");
 
   display.showMessage("Configurando", "Porta RFID...");
   delay(700);

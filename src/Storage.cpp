@@ -130,6 +130,71 @@ bool Storage::saveList(std::vector<unsigned long> listToSave)
   return true;
 }
 
+void Storage::saveAccessHistory(const std::vector<unsigned long> &accessHistory)
+{
+  int address = ACCESS_HISTORY_START;
+
+  // Save the count of access entries (limit to MAX_ACCESS_ENTRIES)
+  byte count = (accessHistory.size() > MAX_ACCESS_ENTRIES) ? MAX_ACCESS_ENTRIES : accessHistory.size();
+  EEPROM.write(address, count);
+  address += sizeof(byte);
+
+  // Save each access entry
+  for (size_t i = 0; i < count; i++)
+  {
+    EEPROM.put(address, accessHistory[i]);
+    address += sizeof(unsigned long);
+  }
+
+#ifdef ESP8266
+  EEPROM.commit();
+#elif defined(ESP32)
+  EEPROM.commit();
+#endif
+  Serial.print("Saved ");
+  Serial.print(count);
+  Serial.println(" entries to access history in EEPROM");
+}
+
+std::vector<unsigned long> Storage::loadAccessHistory()
+{
+  std::vector<unsigned long> accessHistory;
+  int address = ACCESS_HISTORY_START;
+
+  // Read the count of access entries
+  byte count = EEPROM.read(address);
+  address += sizeof(byte);
+
+  // Validate count to prevent corruption issues
+  if (count > MAX_ACCESS_ENTRIES)
+  {
+    Serial.print("Invalid access history count in EEPROM: ");
+    Serial.println(count);
+    return accessHistory;
+  }
+
+  // Read each access entry
+  for (byte i = 0; i < count; i++)
+  {
+    unsigned long cardId;
+    EEPROM.get(address, cardId);
+    address += sizeof(unsigned long);
+
+    // Basic validation - most cards should have non-zero IDs
+    // We'll also skip very large values that might indicate corruption
+    if (cardId != 0 && cardId < 0xFFFFFFFF) 
+    {
+      accessHistory.push_back(cardId);
+    }
+  }
+
+  Serial.print("Loaded ");
+  Serial.print(accessHistory.size());
+  Serial.println(" access entries from EEPROM");
+
+  return accessHistory;
+}
+
 std::vector<unsigned long> Storage::getAll()
 {
   std::vector<unsigned long> rfids;
