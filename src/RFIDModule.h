@@ -13,7 +13,7 @@ public:
   unsigned long convertUID(uint8_t *uid, byte size);
   void setAccessCallback(void (*callback)(bool success, unsigned long cardId));
   std::vector<unsigned long> getLastAccesses() const;
-  unsigned long getLastAccessedCardId() const { return lastAccessedCardId; }
+  unsigned long getLastAccessedCardId() const;
   void clearAccessHistory();
 
 private:

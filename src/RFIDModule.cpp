@@ -6,6 +6,15 @@ RFIDModule::RFIDModule(MFRC522 *reader, Storage *storage, Actuator *actuator)
 void RFIDModule::begin()
 {
   reader->PCD_Init();
+  // Load access history on startup
+  accessedCards = storage->loadAccessHistory();
+  if (!accessedCards.empty())
+  {
+    lastAccessedCardId = accessedCards.back();
+    Serial.print("Loaded access history with ");
+    Serial.print(accessedCards.size());
+    Serial.println(" entries");
+  }
 }
 
 void RFIDModule::loop()
@@ -41,7 +50,7 @@ void RFIDModule::addToAccessHistory(unsigned long cardId)
     accessedCards.erase(accessedCards.begin());
   }
   
-  storage->saveList(accessedCards);
+  storage->saveAccessHistory(accessedCards);
   Serial.print("Access history size: ");
   Serial.println(accessedCards.size());
 }
@@ -60,6 +69,8 @@ void RFIDModule::clearAccessHistory()
 {
   accessedCards.clear();
   lastAccessedCardId = 0;
+  // Save empty history to persistent storage
+  storage->saveAccessHistory(accessedCards);
   Serial.println("Access history cleared");
 }
 
