@@ -13,7 +13,6 @@ public:
   int addRFIDs(JsonDocument &doc);
   int removeRFID(unsigned long id);
   bool saveList();
-  bool isAuthorized(unsigned long id);
   void clearList();
   std::vector<unsigned long> getAll();
 

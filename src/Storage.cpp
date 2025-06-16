@@ -73,10 +73,15 @@ int Storage::addRFIDs(JsonDocument &doc)
     }
   }
 
+  // Salva lista na memória
+  if (!this->saveList())
+  {
+    return -1;
+  }
+
   return added;
 }
 
-// TODO: Verificar salvamento da lista
 int Storage::removeRFID(unsigned long id)
 {
   int count = 0;
@@ -94,5 +99,34 @@ int Storage::removeRFID(unsigned long id)
       ++it;
     }
   }
+
+  // Salva lista na memória
+  if (!this->saveList())
+  {
+    return -1;
+  }
+
   return count;
+}
+
+bool Storage::saveList()
+{
+  StaticJsonDocument<1024> doc;
+  JsonArray array = doc.createNestedArray("rfids");
+
+  for (unsigned long rfid : allowedRFIDs)
+  {
+    array.add(rfid);
+  }
+
+  File file = SPIFFS.open("/rfids.json", FILE_WRITE);
+  if (!file)
+  {
+    Serial.println("Erro ao abrir arquivo para escrita");
+    return false;
+  }
+  serializeJson(doc, file);
+  file.close();
+  Serial.println("Lista de RFIDs salva com sucesso!");
+  return true;
 }
