@@ -130,3 +130,27 @@ bool Storage::saveList()
   Serial.println("Lista de RFIDs salva com sucesso!");
   return true;
 }
+
+std::vector<unsigned long> Storage::getAll()
+{
+  std::vector<unsigned long> rfids;
+
+  File file = SPIFFS.open("/rfids.json", FILE_READ);
+  if (!file)
+  {
+    Serial.println("Failed to open rfid.json");
+    return rfids;
+  }
+
+  String content = file.readString();
+  file.close();
+  DynamicJsonDocument doc(1024);
+  deserializeJson(doc, content);
+  JsonArray array = doc["rfids"].as<JsonArray>();
+
+  for (JsonVariant value : array)
+  {
+    rfids.push_back(value.as<unsigned long>());
+  }
+  return rfids;
+}

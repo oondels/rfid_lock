@@ -88,7 +88,7 @@ void handleAddRfidsCommand(JsonDocument &doc, String &response)
   {
     respDoc["added"] = added;
     respDoc["callBack"]["status"] = "success";
-    display.showMessage("Colaborador adicionado!", "");
+    display.showMessage("Colaborador", "adicionado!");
     delay(1000);
   }
   serializeJson(respDoc, response);
@@ -122,6 +122,28 @@ void handleRemoveRfidCommand(JsonDocument &doc, String &response)
   delay(1000);
 }
 
+void handleGetAllCommand(JsonDocument &doc, String &response)
+{
+  String client = doc["client"] | "";
+  String command = doc["command"] | "get_all";
+
+  std::vector<unsigned long> rfids_list = storage.getAll();
+  StaticJsonDocument<128> respDoc;
+  respDoc["callback"]["client"] = client;
+  respDoc["callback"]["command"] = command;
+
+  // Cria array json para lista de rfids
+  JsonArray rfidsArray = respDoc["callback"]["rfids_list"].to<JsonArray>();
+  // Adiciona cada rfid ao array
+  for (unsigned long rfid: rfids_list)
+  {
+    rfidsArray.add(rfid);
+  }
+
+  display.showMessage("Enviando", "Lista", 1500);
+  serializeJson(respDoc, response);
+}
+
 void handleWebSocketCommand(const String &command, JsonDocument &doc)
 {
   String response;
@@ -132,6 +154,10 @@ void handleWebSocketCommand(const String &command, JsonDocument &doc)
   else if (command == "remove_rfid")
   {
     handleRemoveRfidCommand(doc, response);
+  }
+  else if (command == "get_all")
+  {
+    handleGetAllCommand(doc, response);
   }
   else
   {
