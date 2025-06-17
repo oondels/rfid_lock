@@ -5,18 +5,26 @@ std::vector<unsigned long> allowedRFIDs;
 Storage::Storage() {}
 bool Storage::begin()
 {
-  return SPIFFS.begin(true);
+  if (!LittleFS.begin(/*formatOnFail=*/true))
+  {
+    Serial.println("Falha ao montar LittleFS");
+    return false;
+  }
+  Serial.println("LittleFS montado com sucesso");
+  return true;
 }
 
 bool Storage::loadList()
-
 {
-  if (!SPIFFS.exists("/rfids.json"))
+  if (!LittleFS.exists("/rfids.json"))
   {
-    return false;
+    Serial.println("Arquivo rfids.json não encontrado, criando novo arquivo com RFID padrão.");
+    File f = LittleFS.open("/rfids.json", FILE_WRITE);
+    f.print("{\"rfids\":[]}");
+    f.close();
   }
 
-  File file = SPIFFS.open("/rfids.json", FILE_READ);
+  File file = LittleFS.open("/rfids.json", FILE_READ);
   if (!file)
   {
     return false;
@@ -118,7 +126,7 @@ bool Storage::saveList(std::vector<unsigned long> listToSave)
     array.add(rfid);
   }
 
-  File file = SPIFFS.open("/rfids.json", FILE_WRITE);
+  File file = LittleFS.open("/rfids.json", FILE_WRITE);
   if (!file)
   {
     Serial.println("Erro ao abrir arquivo para escrita");
@@ -182,7 +190,7 @@ std::vector<unsigned long> Storage::loadAccessHistory()
 
     // Basic validation - most cards should have non-zero IDs
     // We'll also skip very large values that might indicate corruption
-    if (cardId != 0 && cardId < 0xFFFFFFFF) 
+    if (cardId != 0 && cardId < 0xFFFFFFFF)
     {
       accessHistory.push_back(cardId);
     }
@@ -199,7 +207,7 @@ std::vector<unsigned long> Storage::getAll()
 {
   std::vector<unsigned long> rfids;
 
-  File file = SPIFFS.open("/rfids.json", FILE_READ);
+  File file = LittleFS.open("/rfids.json", FILE_READ);
   if (!file)
   {
     Serial.println("Failed to open rfid.json");
