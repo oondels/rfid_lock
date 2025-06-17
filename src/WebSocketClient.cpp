@@ -2,7 +2,7 @@
 
 // Connection parameters
 unsigned long lastHeartBeat = 0;
-const unsigned long heartbeatInterval = 10000;
+const unsigned long heartbeatInterval = 8000;
 const unsigned long connectionTimeout = 15000;
 const unsigned long reconnectInterval = 5000;
 const unsigned long connectionAttemptTimeout = 10000; // Timeout for connection attempts
@@ -72,7 +72,7 @@ bool WebSocketClient::loop() {
       client.close(); 
       delay(100);
       
-      client = WebsocketsClient(); 
+      // client = WebsocketsClient(); 
       setupEventHandlers();
       
       client.connect(serverUrl);
@@ -121,6 +121,7 @@ void WebSocketClient::setCommandCallback(void (*callback)(const String &command,
     lastServerResponse = millis();
                   
     if (!commandCallback) {
+      Serial.println("No command callback set, ignoring message");
       return;
     }
     
@@ -255,6 +256,7 @@ void WebSocketClient::getAllRfid(JsonDocument &doc, String &response)
 
 void WebSocketClient::openDoor(JsonDocument &doc, String &response)
 {
+  Serial.println();
   String client = doc["client"] | "";
   String command = doc["command"] | "open_door";
   StaticJsonDocument<128> respDoc;
@@ -289,4 +291,8 @@ void WebSocketClient::getAccessHistory(JsonDocument &doc, String &response)
   respDoc["callBack"]["status"] = "success";
 
   serializeJson(respDoc, response);
+}
+
+void WebSocketClient::setStatusCallback(void (*callback)(bool)) {
+  statusCallback = callback;
 }

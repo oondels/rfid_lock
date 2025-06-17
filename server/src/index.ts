@@ -17,6 +17,7 @@ interface ExtendedWebSocket extends WsWebSocket {
 const app = express();
 const port = 3010;
 const server = http.createServer(app);
+
 const wss = new WebSocketServer({ server });
 
 app.use(helmet());
@@ -80,8 +81,6 @@ wss.on("connection", (ws: ExtendedWebSocket) => {
 
         client.requestStatus = true;
       }
-
-      console.log(data);
     } catch (e) {
       console.error("Error parsing client message!", e);
     }
@@ -144,10 +143,11 @@ app.get("/", (req: Request, res: Response) => {
 const sendCommand = (client: ExtendedWebSocket, command: string, payload: object): Promise<void> => {
   return new Promise((resolve, reject) => {
     client.requestStatus = false;
-    console.log("Command");
-    console.log({ command, ...payload, });
-    
-    
+    if (client.readyState !== WebSocket.OPEN) {
+      reject(new Error("Client is not connected."));
+      return;
+    }
+
     client.send(JSON.stringify({ command, ...payload, }));
 
     const timer = setTimeout(() => {
@@ -188,7 +188,6 @@ const getLastAccess: RequestHandler = async (req: Request, res: Response, next: 
     const { client_id } = req.params;
 
     console.log(`Getting last access for client: ${client_id}`);
-    
 
     const client = connectedClients.get(client_id);
     if (!client || client.readyState !== WebSocket.OPEN) {
@@ -210,7 +209,7 @@ const clearHistory: RequestHandler = async (req: Request, res: Response, next: N
     const { client_id } = req.params;
 
     console.log(`Clearing history for client: ${client_id}`);
-    
+
 
     const client = connectedClients.get(client_id);
     if (!client || client.readyState !== WebSocket.OPEN) {
@@ -319,10 +318,10 @@ const openLockHandler: RequestHandler = async (req: Request, res: Response, next
     const { client_id } = req.params;
     const { verificationKey } = req.body;
 
-    if (verificationKey !== process.env.VERIFICATION_KEY) {
-      res.status(403).json({ message: "Invalid verification key." });
-      return;
-    }
+    // if (verificationKey !== process.env.VERIFICATION_KEY) {
+    //   res.status(403).json({ message: "Invalid verification key." });
+    //   return;
+    // }
 
     const client = connectedClients.get(client_id);
     if (!client || client.readyState !== WebSocket.OPEN) {
@@ -330,7 +329,7 @@ const openLockHandler: RequestHandler = async (req: Request, res: Response, next
       return;
     }
 
-    await sendCommand(client, "open_door", {});
+    await sendCommand(client, "open_door", { client: client_id });
 
     res.status(201).json({ message: "Lock opened successfully." });
   } catch (error) {

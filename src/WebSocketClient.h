@@ -15,6 +15,7 @@ public:
   void sendHeartbeat();
   void setupEventHandlers();
   void setCommandCallback(void (*callback)(const String &command, JsonDocument &doc));
+  void setStatusCallback(void (*callback)(bool));
   void sendEvent(const String &eventJson);
   void sendErrorResponse(const String &client, const String &command, const String &errorMsg, String &response);
   bool addRfid(JsonDocument &doc, String &response);

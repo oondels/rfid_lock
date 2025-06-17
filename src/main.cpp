@@ -77,7 +77,6 @@ void handleWebSocketCommand(const String &command, JsonDocument &doc)
     wsClient.sendErrorResponse(client, command, "Unknown command", response);
     return;
   }
-  Serial.print(response);
   wsClient.sendEvent(response);
 }
 
@@ -92,7 +91,7 @@ void setup()
     while (true)
       ;
   }
-  
+
   // Initialize EEPROM
   EEPROM.begin(Storage::EEPROM_SIZE);
   Serial.println("EEPROM initialized");
@@ -126,14 +125,16 @@ void setup()
   rfidModule.begin();
   actuator.begin();
 
+  wsClient.setStatusCallback([](bool connected){});
+  delay(500);
   wsClient.begin();
+  
+  // Callback centralizado e padronizado para comandos WebSocket
+  wsClient.setCommandCallback(handleWebSocketCommand);
 
   // Registrar callbacks se necessário
   rfidModule.setAccessCallback([](bool sucesso, unsigned long cardId)
                                { display.showAccess(sucesso, "", 1000); });
-
-  // Callback centralizado e padronizado para comandos WebSocket
-  wsClient.setCommandCallback(handleWebSocketCommand);
 }
 
 void loop()
