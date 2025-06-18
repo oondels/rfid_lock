@@ -26,9 +26,11 @@
 #define BOTAO_PIN 2
 
 // Wifi & Serve connection
-const char *ssid = "DASS-IOT";
-const char *password = "Dass0306IOT";
-const char *WEBSOCKET_SERVER = "ws://10.100.1.43:3010";
+const char *ssid = "DASS-CORP";
+const char *password = "dass7425corp";
+const char *WEBSOCKET_SERVER = "ws://10.110.21.105:3010";
+
+const char *door_name = "porta_pe_confirmado_nike";
 
 // Instâncias globais dos módulos
 MFRC522 rfid(SS_PIN, RST_PIN);
@@ -38,7 +40,7 @@ Display display(&oled);
 Storage storage;
 Actuator actuator(RELAY_PIN, BOTAO_PIN);
 RFIDModule rfidModule(&rfid, &storage, &actuator);
-WebSocketClient wsClient(WEBSOCKET_SERVER, &storage, &actuator, &rfidModule);
+WebSocketClient wsClient(door_name, WEBSOCKET_SERVER, &storage, &actuator, &rfidModule);
 WifiClient wifiClient(ssid, password, 30000);
 
 void handleWebSocketCommand(const String &command, JsonDocument &doc)

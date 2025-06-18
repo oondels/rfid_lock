@@ -11,8 +11,8 @@ bool aswerEvent = false;
 unsigned long lastServerResponse = 0;
 unsigned long connectionStartTime = 0;
 
-WebSocketClient::WebSocketClient(const char *server, Storage *storage, Actuator *actuator, RFIDModule *rfidModule)
-    : serverUrl(server), storage(storage), actuator(actuator), rfidModule(rfidModule) {
+WebSocketClient::WebSocketClient(const char *door_name, const char *server, Storage *storage, Actuator *actuator, RFIDModule *rfidModule)
+    : serverUrl(server), storage(storage), actuator(actuator), rfidModule(rfidModule), door_name(door_name) {
   // Setup event handlers once during construction
   setupEventHandlers();
 }
@@ -25,7 +25,7 @@ void WebSocketClient::setupEventHandlers() {
       Serial.println("Ws connected.");
       websocketConnected = true;
       lastServerResponse = now;
-      sendEvent("{\"nome\": \"porta_pe_confirmado\"}");
+      sendEvent("{\"nome\": \"" + String(this->door_name) + "\"}");
     } else if (event == WebsocketsEvent::ConnectionClosed) {
       Serial.println("Ws not connected.");
       websocketConnected = false;
@@ -150,7 +150,7 @@ void WebSocketClient::sendHeartbeat() {
     StaticJsonDocument<64> heartbeatDoc;
     heartbeatDoc["type"] = "heartbeat";
     heartbeatDoc["timestamp"] = millis();
-    heartbeatDoc["client"] = "porta_pe_confirmado";
+    heartbeatDoc["client"] = this->door_name;
     
     String heartbeatMsg;
     serializeJson(heartbeatDoc, heartbeatMsg);

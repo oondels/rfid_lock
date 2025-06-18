@@ -8,7 +8,7 @@ using namespace websockets;
 class WebSocketClient
 {
 public:
-  WebSocketClient(const char *server, Storage *storage, Actuator *actuator, RFIDModule *rfidModule);
+  WebSocketClient(const char *door_name, const char *server, Storage *storage, Actuator *actuator, RFIDModule *rfidModule);
   void begin();
   bool loop();
   void checkConnection();
@@ -25,6 +25,7 @@ public:
   void getAccessHistory(JsonDocument &doc, String &response);
 
 private:
+  const char *door_name;
   RFIDModule *rfidModule;
   WebsocketsClient client;
   const char *serverUrl;
