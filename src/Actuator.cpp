@@ -8,12 +8,12 @@ void Actuator::begin()
 {
   pinMode(relayPin, OUTPUT);
   pinMode(buttonPin, INPUT_PULLUP);
-  digitalWrite(relayPin, LOW);
+  digitalWrite(relayPin, HIGH);
 }
 
 void Actuator::open(unsigned long duration)
 {
-  digitalWrite(relayPin, HIGH);
+  digitalWrite(relayPin, LOW);
   relayState = true;
   openTimestamp = millis();
   openDuration = duration;
@@ -21,7 +21,7 @@ void Actuator::open(unsigned long duration)
 
 void Actuator::close()
 {
-  digitalWrite(relayPin, LOW);
+  digitalWrite(relayPin, HIGH);
   relayState = false;
   openDuration = 0;
 }
@@ -42,5 +42,5 @@ void Actuator::loop()
 
 bool Actuator::isButtonPressed()
 {
-  return digitalRead(buttonPin) == LOW;
+  return digitalRead(buttonPin) == HIGH;
 }
