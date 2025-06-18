@@ -23,8 +23,7 @@ void Actuator::close()
 {
   digitalWrite(relayPin, LOW);
   relayState = false;
-openDuration:
-  0;
+  openDuration = 0;
 }
 
 void Actuator::loop()

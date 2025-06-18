@@ -96,7 +96,7 @@ For the system to function properly, install the following libraries in the Ardu
    ```cpp
    cpp
    CopiarEditar
-   const char* serverName = "<YOUR_API>";
+   const char* serverName = "<YO,UR_API>";
 
    ```
 

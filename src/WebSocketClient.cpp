@@ -25,7 +25,7 @@ void WebSocketClient::setupEventHandlers() {
       Serial.println("Ws connected.");
       websocketConnected = true;
       lastServerResponse = now;
-      sendEvent("{\"nome\": \"porta_ti\"}");
+      sendEvent("{\"nome\": \"porta_pe_confirmado\"}");
     } else if (event == WebsocketsEvent::ConnectionClosed) {
       Serial.println("Ws not connected.");
       websocketConnected = false;
@@ -150,7 +150,7 @@ void WebSocketClient::sendHeartbeat() {
     StaticJsonDocument<64> heartbeatDoc;
     heartbeatDoc["type"] = "heartbeat";
     heartbeatDoc["timestamp"] = millis();
-    heartbeatDoc["client"] = "porta_ti";
+    heartbeatDoc["client"] = "porta_pe_confirmado";
     
     String heartbeatMsg;
     serializeJson(heartbeatDoc, heartbeatMsg);

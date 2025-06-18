@@ -13,8 +13,8 @@
 // Definições Tela Oled
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
-#define OLED_DC 17
-#define OLED_RST 16
+#define OLED_DC 27
+#define OLED_RST 26
 #define OLED_CS 4
 #define OLED_SCK 14
 #define OLED_MOSI 13
@@ -26,9 +26,9 @@
 #define BOTAO_PIN 2
 
 // Wifi & Serve connection
-const char *ssid = "DASS-CORP";
-const char *password = "dass7425corp";
-const char *WEBSOCKET_SERVER = "ws://10.110.21.105:3010";
+const char *ssid = "DASS-IOT";
+const char *password = "Dass0306IOT";
+const char *WEBSOCKET_SERVER = "ws://10.100.1.43:3010";
 
 // Instâncias globais dos módulos
 MFRC522 rfid(SS_PIN, RST_PIN);
