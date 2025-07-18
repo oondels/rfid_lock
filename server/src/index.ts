@@ -236,7 +236,7 @@ const addRFIDHandler: RequestHandler = async (req: Request, res: Response, next:
     }
 
     const client = connectedClients.get(client_id);
-    if (!client || client.readyState !== WebSocket.OPEN) {
+    if (!client || client.readyState !== WsWebSocket.OPEN) {
       res.status(404).json({ message: "Client is not connected." });
       return;
     }
@@ -261,7 +261,7 @@ const removeRFIDHandler: RequestHandler = async (req: Request, res: Response, ne
     }
 
     const client = connectedClients.get(client_id);
-    if (!client || client.readyState !== WebSocket.OPEN) {
+    if (!client || client.readyState !== WsWebSocket.OPEN) {
       res.status(404).json({ message: "Client is not connected." });
       return;
     }
@@ -280,7 +280,7 @@ const clearRfidsHandler: RequestHandler = async (req: Request, res: Response, ne
     const { client_id } = req.params;
 
     const client = connectedClients.get(client_id);
-    if (!client || client.readyState !== WebSocket.OPEN) {
+    if (!client || client.readyState !== WsWebSocket.OPEN) {
       res.status(404).json({ message: "Client is not connected." });
       return;
     }
@@ -299,7 +299,7 @@ const testConnectionHandler: RequestHandler = async (req: Request, res: Response
     const { client_id } = req.params;
 
     const client = connectedClients.get(client_id);
-    if (!client || client.readyState !== WebSocket.OPEN) {
+    if (!client || client.readyState !== WsWebSocket.OPEN) {
       res.status(404).json({ message: "Client is not connected." });
       return;
     }
@@ -324,7 +324,7 @@ const openLockHandler: RequestHandler = async (req: Request, res: Response, next
     // }
 
     const client = connectedClients.get(client_id);
-    if (!client || client.readyState !== WebSocket.OPEN) {
+    if (!client || client.readyState !== WsWebSocket.OPEN) {
       res.status(404).json({ message: "Client is not connected." });
       return;
     }
