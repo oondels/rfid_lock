@@ -11,6 +11,29 @@ bool Storage::begin()
     return false;
   }
   Serial.println("LittleFS montado com sucesso");
+  
+  // Adicionar RFID manualmente - TEMPORÁRIO
+  // delay(500);
+  // Serial.println("Adicionando rfids padra...");
+  // unsigned long allowedRFIDsArray[] = {
+  //     2396170782,
+  //     3628015726,
+  //     2629318421
+  // };
+
+  // for (unsigned long rfid : allowedRFIDsArray)
+  // {
+  //   Serial.print("Adicionando rfid: ");
+  //   Serial.println(rfid);
+  //   allowedRFIDs.push_back(rfid);
+  // }
+
+  // // Salva lista na memória
+  // if (!this->saveList(this->allowedRFIDs))
+  // {
+  //   return -1;
+  // }
+
   return true;
 }
 

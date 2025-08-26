@@ -22,8 +22,9 @@
 // Definições SPI para RFID
 #define SS_PIN 4
 #define RST_PIN 2
+
 #define RELAY_PIN 32
-#define BOTAO_PIN 2
+#define BOTAO_PIN 5
 
 // Wifi & Serve connection
 const char *ssid = "DASS-IOT";
@@ -153,6 +154,7 @@ void loop()
   // }
 
   // display.defaultMessage(wifiStatus, wsStatus);
+
   display.defaultMessageOff();
   delay(100);
 }
