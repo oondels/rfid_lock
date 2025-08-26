@@ -11,8 +11,9 @@ void WifiClient::begin()
   WiFi.begin(wifiSsid, wifiPassword);
   unsigned long startTime = millis();
   while (WiFi.status() != WL_CONNECTED && (millis() - startTime < timeout))
+  // while (WiFi.status() != WL_CONNECTED)
   {
-    delay(500);
+    delay(300);
     Serial.println("Conectando Wi-Fi...");
   }
   checkConnection();
@@ -22,6 +23,7 @@ bool WifiClient::checkConnection()
 {
   if (WiFi.status() == WL_CONNECTED)
   {
+    Serial.println("\nWi-fi conectado");
     return true;
   }
   else
@@ -46,6 +48,7 @@ void WifiClient::reconnect()
 
   if (now - lastReconnectWifiAttempt > reconnectWifiInterval)
   {
+    Serial.println("Trying to reconnect wifi...");
     WiFi.disconnect();
     WiFi.begin(wifiSsid, wifiPassword);
     lastReconnectWifiAttempt = now;

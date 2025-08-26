@@ -93,6 +93,30 @@ void Display::defaultMessage(bool wifi, bool ws)
   display->display();
 }
 
+void Display::defaultMessageOff()
+{
+  if (millis() - this->lastMessageTime < this->messageDelay)
+  {
+    return;
+  }
+
+  display->clearDisplay();
+  display->drawRect(0, 0, SCREEN_WIDTH, 30, SSD1306_WHITE);
+  display->setTextSize(1);
+  display->setTextColor(SSD1306_WHITE);
+  display->setCursor(5, 10);
+  display->println(F(displayTitle));
+  display->setTextSize(1);
+  display->setCursor(10, 35);
+  display->println("Aproxime o cracha");
+
+  display->setCursor(10, 55);
+  display->setTextSize(0.5);
+
+  display->display();
+}
+
+
 const unsigned char Display::check_icon[] PROGMEM = {
     B00000000,
     B00000001,

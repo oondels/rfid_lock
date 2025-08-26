@@ -12,13 +12,16 @@ unsigned long lastServerResponse = 0;
 unsigned long connectionStartTime = 0;
 
 WebSocketClient::WebSocketClient(const char *door_name, const char *server, Storage *storage, Actuator *actuator, RFIDModule *rfidModule)
-    : serverUrl(server), storage(storage), actuator(actuator), rfidModule(rfidModule), door_name(door_name) {
+    : serverUrl(server), storage(storage), actuator(actuator), rfidModule(rfidModule), door_name(door_name)
+{
   // Setup event handlers once during construction
   setupEventHandlers();
 }
 
-void WebSocketClient::setupEventHandlers() {
-  client.onEvent([this](WebsocketsEvent event, String data) {
+void WebSocketClient::setupEventHandlers()
+{
+  client.onEvent([this](WebsocketsEvent event, String data)
+                 {
     unsigned long now = millis();
 
     if (event == WebsocketsEvent::ConnectionOpened) {
@@ -32,13 +35,14 @@ void WebSocketClient::setupEventHandlers() {
     } else if (event == WebsocketsEvent::GotPing) {
       lastServerResponse = now;
       client.pong();
-    }
-  });
+    } });
 }
 
-void WebSocketClient::begin() {
+void WebSocketClient::begin()
+{
   // Only try to connect, event handlers are already set in constructor
-  if (!websocketConnected) {
+  if (!websocketConnected)
+  {
     Serial.println("Initiating connection to WebSocket server...");
     connectionStartTime = millis();
     client.connect(serverUrl);
@@ -46,78 +50,103 @@ void WebSocketClient::begin() {
   }
 }
 
-bool WebSocketClient::loop() {
+bool WebSocketClient::loop()
+{
   client.poll();
   unsigned long now = millis();
 
-  if (!websocketConnected && (now - connectionStartTime > connectionAttemptTimeout) && connectionStartTime > 0) {
-    Serial.println("Connection attempt timed out, cleaning up...");
-    client.close();
-    connectionStartTime = 0;
+  if (WiFi.status() == WL_CONNECTED)
+  {
+    if (!websocketConnected && (now - connectionStartTime > connectionAttemptTimeout) && connectionStartTime > 0)
+    {
+      Serial.println("Connection attempt timed out, cleaning up...");
+      client.close();
+      connectionStartTime = 0;
+    }
+
+    if (websocketConnected && (now - lastServerResponse > connectionTimeout))
+    {
+      Serial.println("Connection timeout, disconnecting...");
+      client.close();
+      websocketConnected = false;
+    }
+
+    // Handle reconnection
+    if (!websocketConnected && WiFi.status() == WL_CONNECTED)
+    {
+      static unsigned long lastReconnectAttempt = 0;
+
+      if (now - lastReconnectAttempt > reconnectInterval)
+      {
+        Serial.println("Attempting to reconnect to WebSocket server...");
+
+        client.close();
+        delay(100);
+
+        // client = WebsocketsClient();
+        setupEventHandlers();
+
+        client.connect(serverUrl);
+        aswerEvent = true;
+        connectionStartTime = now;
+        lastReconnectAttempt = now;
+      }
+    }
+    else
+    {
+      if (now - lastHeartBeat > heartbeatInterval)
+      {
+        sendHeartbeat();
+        lastHeartBeat = now;
+      }
+    }
+
+    if (aswerEvent && websocketConnected)
+    {
+      sendEvent("{\"status\": \"ok\"}");
+      aswerEvent = false;
+    }
+
+    if (statusCallback)
+    {
+      statusCallback(websocketConnected);
+    }
   }
-  
-  if (websocketConnected && (now - lastServerResponse > connectionTimeout)) {
-    Serial.println("Connection timeout, disconnecting...");
-    client.close();
+  else
+  {
     websocketConnected = false;
-  }
-
-  // Handle reconnection
-  if (!websocketConnected) {
-    static unsigned long lastReconnectAttempt = 0;
-    
-    if (now - lastReconnectAttempt > reconnectInterval) {
-      Serial.println("Attempting to reconnect to WebSocket server...");
-
-      client.close(); 
-      delay(100);
-      
-      // client = WebsocketsClient(); 
-      setupEventHandlers();
-      
-      client.connect(serverUrl);
-      aswerEvent = true;
-      connectionStartTime = now;
-      lastReconnectAttempt = now;
-    }
-  } else {
-    if (now - lastHeartBeat > heartbeatInterval) {
-      sendHeartbeat();
-      lastHeartBeat = now;
-    }
-  }
-
-  if (aswerEvent && websocketConnected) {
-    sendEvent("{\"status\": \"ok\"}");
-    aswerEvent = false;
-  }
-
-  if (statusCallback) {
-    statusCallback(websocketConnected);
   }
 
   return websocketConnected;
 }
 
-void WebSocketClient::checkConnection() {
-  if (statusCallback) {
+void WebSocketClient::checkConnection()
+{
+  if (statusCallback)
+  {
     statusCallback(websocketConnected);
   }
 }
 
-void WebSocketClient::sendEvent(const String &eventJson) {
-  if (websocketConnected) {
+void WebSocketClient::sendEvent(const String &eventJson)
+{
+  if (websocketConnected)
+  {
     client.send(eventJson);
-  } else {
+  }
+  else
+  {
     Serial.println("Cannot send event: not connected");
   }
 }
 
-void WebSocketClient::setCommandCallback(void (*callback)(const String &command, JsonDocument &doc)) {
+void WebSocketClient::setCommandCallback(void (*callback)(const String &command, JsonDocument &doc))
+{
   commandCallback = callback;
 
   // Register the message handler
-  client.onMessage([this](WebsocketsMessage message) {
+  client.onMessage([this](WebsocketsMessage message)
+                   {
     lastServerResponse = millis();
                   
     if (!commandCallback) {
@@ -141,17 +170,18 @@ void WebSocketClient::setCommandCallback(void (*callback)(const String &command,
     }
 
     String command = doc["command"] | "";
-    commandCallback(command, doc);
-  });
+    commandCallback(command, doc); });
 }
 
-void WebSocketClient::sendHeartbeat() {
-  if (websocketConnected) {
+void WebSocketClient::sendHeartbeat()
+{
+  if (websocketConnected)
+  {
     StaticJsonDocument<64> heartbeatDoc;
     heartbeatDoc["type"] = "heartbeat";
     heartbeatDoc["timestamp"] = millis();
     heartbeatDoc["client"] = this->door_name;
-    
+
     String heartbeatMsg;
     serializeJson(heartbeatDoc, heartbeatMsg);
     client.send(heartbeatMsg);
@@ -279,20 +309,21 @@ void WebSocketClient::getAccessHistory(JsonDocument &doc, String &response)
 
   std::vector<unsigned long> accessHistory = rfidModule->getLastAccesses();
   unsigned long lastCardId = rfidModule->getLastAccessedCardId();
-  
+
   // Create array for access history
   JsonArray historyArray = respDoc["callBack"]["access_history"].to<JsonArray>();
   for (unsigned long cardId : accessHistory)
   {
     historyArray.add(cardId);
   }
-  
+
   respDoc["callBack"]["last_accessed_card"] = lastCardId;
   respDoc["callBack"]["status"] = "success";
 
   serializeJson(respDoc, response);
 }
 
-void WebSocketClient::setStatusCallback(void (*callback)(bool)) {
+void WebSocketClient::setStatusCallback(void (*callback)(bool))
+{
   statusCallback = callback;
 }

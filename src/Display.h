@@ -10,6 +10,7 @@ public:
     void showAccess(bool authorized, const String& name = "", unsigned long delay = 0);
     void showMessage(const String& message, const String &message2, unsigned long delay = 0);
     void defaultMessage(bool wifi, bool ws);
+    void defaultMessageOff();
 private:
     Adafruit_SSD1306* display;
     unsigned long messageDelay = 1000;

@@ -21,6 +21,7 @@ void RFIDModule::loop()
 {
   if (reader->PICC_IsNewCardPresent() && reader->PICC_ReadCardSerial())
   {
+    Serial.println("Card detected");
     checkCard();
     reader->PICC_HaltA();
   }
@@ -32,6 +33,7 @@ void RFIDModule::checkCard()
   bool allowed = storage->isAllowed(cardId);
   if (allowed)
   {
+    Serial.print("Access granted for card ID: ");
     addToAccessHistory(cardId);
     lastAccessedCardId = cardId;
     actuator->open();

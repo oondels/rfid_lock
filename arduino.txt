@@ -1,11 +1,11 @@
 RFID
-SDA (SS) -> GPIO 5
+SDA (SS) -> D4
 SCK -> GPIO 18
 MOSI -> GPIO 23
 MISO -> GPIO 19
 GND -> GND
 3.3V -> 3.3V
-RST -> GPIO 22
+RST -> D2
 
 Tela Oled SPI
 VCC -> 3.3V
