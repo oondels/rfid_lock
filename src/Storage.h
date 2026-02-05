@@ -9,8 +9,6 @@ class Storage
 {
 public:
   static const int EEPROM_SIZE = 512;
-  
-  std::vector<unsigned long> allowedRFIDs;
   Storage();
   bool begin();
   bool isAllowed(unsigned long cardId);
@@ -22,8 +20,10 @@ public:
   void saveAccessHistory(const std::vector<unsigned long> &accessedCards);
   std::vector<unsigned long> loadAccessHistory();
   std::vector<unsigned long> getAll();
+  bool clearMemory();
 
 private:
+  std::vector<unsigned long> allowedRFIDs;
   std::vector<unsigned long> rfidList;
   static const int RFID_LIST_START = 0;
   static const int ACCESS_HISTORY_START = 256;

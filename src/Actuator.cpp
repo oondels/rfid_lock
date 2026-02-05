@@ -7,12 +7,13 @@ Actuator::Actuator(int relayPin, int buttonPin)
 void Actuator::begin()
 {
   pinMode(relayPin, OUTPUT);
-  pinMode(buttonPin, INPUT_PULLUP);
   digitalWrite(relayPin, HIGH);
+  pinMode(buttonPin, INPUT_PULLUP);
 }
 
 void Actuator::open(unsigned long duration)
 {
+  Serial.println("Opening actuator");
   digitalWrite(relayPin, LOW);
   relayState = true;
   openTimestamp = millis();
@@ -21,6 +22,7 @@ void Actuator::open(unsigned long duration)
 
 void Actuator::close()
 {
+  Serial.println("Closing actuator");
   digitalWrite(relayPin, HIGH);
   relayState = false;
   openDuration = 0;
@@ -31,16 +33,18 @@ void Actuator::loop()
   // Auto close after duration
   if (relayState && openDuration > 0 && (millis() - openTimestamp >= openDuration))
   {
+    Serial.println("Auto-closing actuator");
     close();
   }
   // Manual open button
   if (isButtonPressed() && !relayState)
   {
+    Serial.println("Manual opening actuator");
     open();
   }
 }
 
 bool Actuator::isButtonPressed()
 {
-  return digitalRead(buttonPin) == HIGH;
+  return digitalRead(buttonPin) == LOW;
 }

@@ -10,29 +10,8 @@ bool Storage::begin()
     Serial.println("Falha ao montar LittleFS");
     return false;
   }
+  EEPROM.begin(1 + MAX_ACCESS_ENTRIES * sizeof(unsigned long));
   Serial.println("LittleFS montado com sucesso");
-  
-  // Adicionar RFID manualmente - TEMPORÁRIO
-  // delay(500);
-  // Serial.println("Adicionando rfids padra...");
-  // unsigned long allowedRFIDsArray[] = {
-  //     2396170782,
-  //     3628015726,
-  //     2629318421
-  // };
-
-  // for (unsigned long rfid : allowedRFIDsArray)
-  // {
-  //   Serial.print("Adicionando rfid: ");
-  //   Serial.println(rfid);
-  //   allowedRFIDs.push_back(rfid);
-  // }
-
-  // // Salva lista na memória
-  // if (!this->saveList(this->allowedRFIDs))
-  // {
-  //   return -1;
-  // }
 
   return true;
 }
@@ -49,32 +28,33 @@ bool Storage::loadList()
 
   File file = LittleFS.open("/rfids.json", FILE_READ);
   if (!file)
-  {
     return false;
-  }
 
-  StaticJsonDocument<1024> doc;
-  DeserializationError error = deserializeJson(doc, file);
+  StaticJsonDocument<JSON_OBJECT_SIZE(1) + JSON_ARRAY_SIZE(200)> doc;
+  auto error = deserializeJson(doc, file);
   file.close();
 
   if (error)
-  {
     return false;
-  }
 
-  allowedRFIDs.clear();
-  JsonArray rfids = doc["rfids"].as<JsonArray>();
-  for (JsonVariant uid : rfids)
-  {
-    allowedRFIDs.push_back(uid.as<unsigned long>());
-  }
+  // allowedRFIDs.clear();
+  
+  // // Array de RFIDs padrões que serão adicionados na inicialização
+  // const unsigned long defaultRfids[] = {
+  //   3339378968
+  // };
+  
+  // // Adiciona RFIDs padrão (reset do armazenamento)
+  // for (const auto& rfid : defaultRfids) {
+  //   allowedRFIDs.push_back(rfid);
+  //   Serial.print("RFID padrão adicionado: ");
+  //   Serial.println(rfid);
+  // }
+  
+  // bool changed = true;
 
-  unsigned long defaultRfid = 2269219895;
-  if (std::find(allowedRFIDs.begin(), allowedRFIDs.end(), defaultRfid) == allowedRFIDs.end())
-  {
-    allowedRFIDs.push_back(defaultRfid);
-  }
-
+  // if (changed)
+  //   saveList(allowedRFIDs);
   return true;
 }
 
@@ -141,10 +121,10 @@ int Storage::removeRFID(unsigned long id)
 
 bool Storage::saveList(std::vector<unsigned long> listToSave)
 {
-  StaticJsonDocument<1024> doc;
+  StaticJsonDocument <JSON_OBJECT_SIZE(1) + JSON_ARRAY_SIZE(200) > doc;
   JsonArray array = doc.createNestedArray("rfids");
 
-  for (unsigned long rfid : listToSave)
+  for (auto rfid : listToSave)
   {
     array.add(rfid);
   }
@@ -248,4 +228,39 @@ std::vector<unsigned long> Storage::getAll()
     rfids.push_back(value.as<unsigned long>());
   }
   return rfids;
+}
+
+bool Storage::clearMemory()
+{
+  Serial.println("Iniciando limpeza da memória...");
+  
+  // Limpa o vetor de RFIDs em memória
+  allowedRFIDs.clear();
+  
+  // Formata o LittleFS (remove todos os arquivos)
+  Serial.println("Formatando LittleFS...");
+  if (!LittleFS.format())
+  {
+    Serial.println("Erro ao formatar LittleFS");
+    return false;
+  }
+  Serial.println("LittleFS formatado com sucesso!");
+  
+  // Limpa a EEPROM
+  Serial.println("Limpando EEPROM...");
+  for (int i = 0; i < EEPROM_SIZE; i++)
+  {
+    EEPROM.write(i, 0);
+  }
+  
+#ifdef ESP8266
+  EEPROM.commit();
+#elif defined(ESP32)
+  EEPROM.commit();
+#endif
+  
+  Serial.println("EEPROM limpa com sucesso!");
+  Serial.println("Memória completamente limpa!");
+  
+  return true;
 }

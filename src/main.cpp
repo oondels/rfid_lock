@@ -27,8 +27,8 @@
 #define BOTAO_PIN 5
 
 // Wifi & Serve connection
-const char *ssid = "DASS-IOT";
-const char *password = "Dass0306IOT";
+const char *ssid = "DASS-CORP";
+const char *password = "dass7425corp";
 const char *WEBSOCKET_SERVER = "ws://10.100.1.43:3010";
 
 const char *door_name = "porta_ti";
@@ -87,6 +87,8 @@ void setup()
 {
   Serial.begin(115200);
   Serial.println("Starting");
+  // Inicializa o atuador o mais cedo possível para garantir relé desligado
+  actuator.begin();
 
   SPI_OLED.begin(OLED_SCK, -1, OLED_MOSI, OLED_CS);
   if (!oled.begin(SSD1306_SWITCHCAPVCC))
@@ -119,6 +121,38 @@ void setup()
     return;
   }
 
+  // Clear all stored data
+  // storage.clearMemory();
+
+  // Add Rfids
+  unsigned long allowedRFIDsArray[] = {
+      2269219895, // Hendrius
+      3625882750, // Ramon
+      3416347418, // Guedes
+      2617777157, // Miqueias
+      1455116486, // Uilliam
+      3628015726, // Bertolino 
+      2629318421, // Hellen
+      2409447214, // Leone
+      3298720930, // Sergio 
+      3047181186, // Edilson
+      3046795490, // Renilson - Café 
+      377341517, // Victor Eletricista
+      165907952, // Ramon - Café
+      2773097371, // Marcos,
+      4125357762, // João Victor
+      2619281925, // Carla Costa Limpeza
+      2674278899 // Tag azul extra
+    };
+
+  StaticJsonDocument<JSON_OBJECT_SIZE(1) + JSON_ARRAY_SIZE(20)> doc;
+  JsonArray arr = doc.createNestedArray("rfids");
+  for (auto rfid : allowedRFIDsArray)
+    arr.add(rfid);
+
+  int added = storage.addRFIDs(doc); // persists internally
+  Serial.printf("Added %d new RFIDs\n", added);
+
   // display.showMessage("WIFI", "Conectando Wifi");
   // wifiClient.begin();
   // display.showMessage("WIFI", wifiClient.checkConnection() ? "Conexao Estabelecida" : "Falha na conexao");
@@ -128,11 +162,10 @@ void setup()
   SPI.begin(18, 19, 23, SS_PIN);
   rfidModule.begin();
   Serial.println("RFID initialized");
-  actuator.begin();
 
   // wsClient.setStatusCallback([](bool connected){});
   // wsClient.begin();
-  
+
   // // Callback centralizado e padronizado para comandos WebSocket
   // wsClient.setCommandCallback(handleWebSocketCommand);
 
@@ -145,7 +178,7 @@ void loop()
 {
   rfidModule.loop();
   actuator.loop();
-  
+
   // bool wifiStatus = wifiClient.loop();
   // bool wsStatus = wsClient.loop();
   // if (!wifiStatus)
@@ -158,7 +191,6 @@ void loop()
   display.defaultMessageOff();
   delay(100);
 }
-
 
 // #include <SPI.h>
 // #include <MFRC522.h>
