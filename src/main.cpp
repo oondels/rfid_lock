@@ -9,6 +9,7 @@
 #include "Display.h"
 #include "Actuator.h"
 #include "MyWifiClient.h"
+#include "WifiClient.cpp"
 
 // Definições Tela Oled
 #define SCREEN_WIDTH 128
