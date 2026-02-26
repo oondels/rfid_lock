@@ -1,12 +1,12 @@
-#include "WifiClient.h"
+#include "MyWifiClient.h"
 
 const unsigned long reconnectWifiInterval = 60000;
 unsigned long lastReconnectWifiAttempt = 0;
 
-WifiClient::WifiClient(const char *ssid, const char *password, unsigned long timeout)
+MyWifiClient::MyWifiClient(const char *ssid, const char *password, unsigned long timeout)
     : wifiSsid(ssid), wifiPassword(password), timeout(timeout) {}
 
-void WifiClient::begin()
+void MyWifiClient::begin()
 {
   WiFi.begin(wifiSsid, wifiPassword);
   unsigned long startTime = millis();
@@ -19,7 +19,7 @@ void WifiClient::begin()
   checkConnection();
 }
 
-bool WifiClient::checkConnection()
+bool MyWifiClient::checkConnection()
 {
   if (WiFi.status() == WL_CONNECTED)
   {
@@ -33,7 +33,7 @@ bool WifiClient::checkConnection()
   }
 }
 
-bool WifiClient::loop()
+bool MyWifiClient::loop()
 {
   if (WiFi.status() == WL_CONNECTED)
   {
@@ -42,7 +42,7 @@ bool WifiClient::loop()
   return false;
 }
 
-void WifiClient::reconnect()
+void MyWifiClient::reconnect()
 {
   unsigned long now = millis();
 

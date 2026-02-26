@@ -1,9 +1,9 @@
 #include <WiFi.h>
 
-class WifiClient
+class MyWifiClient
 {
 public:
-  WifiClient(const char *ssid, const char *password, unsigned long timeout);
+  MyWifiClient(const char *ssid, const char *password, unsigned long timeout);
   void begin();
   bool loop();
   bool checkConnection();

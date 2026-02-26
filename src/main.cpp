@@ -8,7 +8,7 @@
 #include "Storage.h"
 #include "Display.h"
 #include "Actuator.h"
-#include "WifiClient.h"
+#include "MyWifiClient.h"
 
 // Definições Tela Oled
 #define SCREEN_WIDTH 128
@@ -142,7 +142,11 @@ void setup()
       2773097371, // Marcos,
       4125357762, // João Victor
       2619281925, // Carla Costa Limpeza
-      2674278899 // Tag azul extra
+      2674278899, // Tag azul extra
+      3625660014, // Andre, portaria
+      3626186062, // portaria 01
+      3624067710, // portaria 02
+      2618688053, // Joseane
     };
 
   StaticJsonDocument<JSON_OBJECT_SIZE(1) + JSON_ARRAY_SIZE(20)> doc;
