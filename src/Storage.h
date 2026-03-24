@@ -14,7 +14,7 @@ public:
   bool isAllowed(unsigned long cardId);
   int addRFIDs(JsonDocument &doc);
   int removeRFID(unsigned long id);
-  bool saveList(std::vector<unsigned long> listToSave);
+  bool saveList(const std::vector<unsigned long> &listToSave);
   bool loadList();
 
   void saveAccessHistory(const std::vector<unsigned long> &accessedCards);

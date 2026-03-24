@@ -1,7 +1,7 @@
 #include "Storage.h"
+#include <algorithm>
 #include <vector>
 
-std::vector<unsigned long> allowedRFIDs;
 Storage::Storage() {}
 bool Storage::begin()
 {
@@ -30,12 +30,39 @@ bool Storage::loadList()
   if (!file)
     return false;
 
-  StaticJsonDocument<JSON_OBJECT_SIZE(1) + JSON_ARRAY_SIZE(200)> doc;
+  JsonDocument doc;
   auto error = deserializeJson(doc, file);
   file.close();
 
   if (error)
     return false;
+
+  this->allowedRFIDs.clear();
+
+  JsonArray rfids = doc["rfids"].as<JsonArray>();
+  if (rfids.isNull())
+  {
+    return false;
+  }
+
+  for (JsonVariant value : rfids)
+  {
+    if (this->allowedRFIDs.size() >= MAX_RFIDS)
+    {
+      break;
+    }
+
+    unsigned long rfidValue = value.as<unsigned long>();
+    if (rfidValue == 0)
+    {
+      continue;
+    }
+
+    if (!this->isAllowed(rfidValue))
+    {
+      this->allowedRFIDs.push_back(rfidValue);
+    }
+  }
 
   // allowedRFIDs.clear();
   
@@ -60,24 +87,34 @@ bool Storage::loadList()
 
 bool Storage::isAllowed(unsigned long cardId)
 {
-  return std::find(allowedRFIDs.begin(), allowedRFIDs.end(), cardId) != allowedRFIDs.end();
+  return std::find(this->allowedRFIDs.begin(), this->allowedRFIDs.end(), cardId) != this->allowedRFIDs.end();
 }
 
 int Storage::addRFIDs(JsonDocument &doc)
 {
-  if (!doc.containsKey("rfids") || !doc["rfids"].is<JsonArray>())
+  JsonArray rfids = doc["rfids"].as<JsonArray>();
+  if (rfids.isNull())
   {
     return -1;
   }
 
-  JsonArray rfids = doc["rfids"].as<JsonArray>();
   int added = 0;
   for (JsonVariant uid : rfids)
   {
-    unsigned long rfidValue = uid.as<unsigned long>();
-    if (!isAllowed(rfidValue))
+    if (this->allowedRFIDs.size() >= MAX_RFIDS)
     {
-      allowedRFIDs.push_back(rfidValue);
+      break;
+    }
+
+    unsigned long rfidValue = uid.as<unsigned long>();
+    if (rfidValue == 0)
+    {
+      continue;
+    }
+
+    if (!this->isAllowed(rfidValue))
+    {
+      this->allowedRFIDs.push_back(rfidValue);
       Serial.print("Added rfid: ");
       Serial.println(rfidValue);
       added++;
@@ -96,11 +133,11 @@ int Storage::addRFIDs(JsonDocument &doc)
 int Storage::removeRFID(unsigned long id)
 {
   int count = 0;
-  for (auto it = allowedRFIDs.begin(); it != allowedRFIDs.end();)
+  for (auto it = this->allowedRFIDs.begin(); it != this->allowedRFIDs.end();)
   {
     if (*it == id)
     {
-      it = allowedRFIDs.erase(it); // erase retorna o próximo iterador válido
+      it = this->allowedRFIDs.erase(it); // erase retorna o próximo iterador válido
       count++;
     }
     else
@@ -119,14 +156,19 @@ int Storage::removeRFID(unsigned long id)
   return count;
 }
 
-bool Storage::saveList(std::vector<unsigned long> listToSave)
+bool Storage::saveList(const std::vector<unsigned long> &listToSave)
 {
-  StaticJsonDocument <JSON_OBJECT_SIZE(1) + JSON_ARRAY_SIZE(200) > doc;
-  JsonArray array = doc.createNestedArray("rfids");
+  JsonDocument doc;
+  JsonArray array = doc["rfids"].to<JsonArray>();
 
   for (auto rfid : listToSave)
   {
     array.add(rfid);
+  }
+
+  if (LittleFS.exists("/rfids.json"))
+  {
+    LittleFS.remove("/rfids.json");
   }
 
   File file = LittleFS.open("/rfids.json", FILE_WRITE);
@@ -217,10 +259,15 @@ std::vector<unsigned long> Storage::getAll()
     return rfids;
   }
 
-  String content = file.readString();
+  JsonDocument doc;
+  auto error = deserializeJson(doc, file);
   file.close();
-  DynamicJsonDocument doc(1024);
-  deserializeJson(doc, content);
+  if (error)
+  {
+    Serial.println("Failed to parse rfid.json");
+    return rfids;
+  }
+
   JsonArray array = doc["rfids"].as<JsonArray>();
 
   for (JsonVariant value : array)
@@ -235,7 +282,7 @@ bool Storage::clearMemory()
   Serial.println("Iniciando limpeza da memória...");
   
   // Limpa o vetor de RFIDs em memória
-  allowedRFIDs.clear();
+  this->allowedRFIDs.clear();
   
   // Formata o LittleFS (remove todos os arquivos)
   Serial.println("Formatando LittleFS...");
