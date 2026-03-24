@@ -277,6 +277,13 @@ std::vector<unsigned long> Storage::getAll()
   return rfids;
 }
 
+bool Storage::clearRFIDs()
+{
+  this->allowedRFIDs.clear();
+  std::vector<unsigned long> emptyList;
+  return this->saveList(emptyList);
+}
+
 bool Storage::clearMemory()
 {
   Serial.println("Iniciando limpeza da memória...");

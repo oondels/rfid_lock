@@ -27,9 +27,9 @@
 #define BOTAO_PIN 5
 
 // Wifi & Serve connection
-const char *ssid = "DASS-IOT";
-const char *password = "Dass0306IOT";
-const char *WEBSOCKET_SERVER = "ws://10.100.1.43:3010";
+const char *ssid = "Oendels";
+const char *password = "virx2123";
+const char *WEBSOCKET_SERVER = "ws://10.22.47.135:3010";
 
 const char *door_name = "porta_ti";
 
@@ -74,12 +74,19 @@ void handleWebSocketCommand(const String &command, JsonDocument &doc)
   {
     rfidModule.clearAccessHistory(doc, response);
   }
+  else if (command == "clear-list")
+  {
+    wsClient.clearRfids(doc, response);
+  }
+  else if (command == "test-connection")
+  {
+    wsClient.testConnection(doc, response);
+  }
   else
   {
     String client = doc["client"] | "";
     String requestId = doc["requestId"] | "";
     wsClient.sendErrorResponse(client, command, "Unknown command", response, requestId);
-    return;
   }
   wsClient.sendEvent(response);
 }

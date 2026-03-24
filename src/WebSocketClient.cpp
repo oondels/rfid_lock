@@ -340,6 +340,39 @@ void WebSocketClient::getAccessHistory(JsonDocument &doc, String &response)
   serializeJson(respDoc, response);
 }
 
+void WebSocketClient::clearRfids(JsonDocument &doc, String &response)
+{
+  String client = doc["client"] | "";
+  String command = doc["command"] | "clear-list";
+  String requestId = doc["requestId"] | "";
+  StaticJsonDocument<128> respDoc;
+  respDoc["callBack"]["client"] = client;
+  respDoc["callBack"]["command"] = command;
+  if (requestId != "")
+    respDoc["callBack"]["requestId"] = requestId;
+
+  bool success = storage->clearRFIDs();
+  respDoc["callBack"]["status"] = success ? "success" : "error";
+  if (!success)
+    respDoc["error"] = "Failed to clear RFID list";
+
+  serializeJson(respDoc, response);
+}
+
+void WebSocketClient::testConnection(JsonDocument &doc, String &response)
+{
+  String client = doc["client"] | "";
+  String command = doc["command"] | "test-connection";
+  String requestId = doc["requestId"] | "";
+  StaticJsonDocument<128> respDoc;
+  respDoc["callBack"]["client"] = client;
+  respDoc["callBack"]["command"] = command;
+  if (requestId != "")
+    respDoc["callBack"]["requestId"] = requestId;
+  respDoc["callBack"]["status"] = "success";
+  serializeJson(respDoc, response);
+}
+
 void WebSocketClient::setStatusCallback(void (*callback)(bool))
 {
   statusCallback = callback;

@@ -23,6 +23,8 @@ public:
   void getAllRfid(JsonDocument &doc, String &response);
   void openDoor(JsonDocument &doc, String &response);
   void getAccessHistory(JsonDocument &doc, String &response);
+  void clearRfids(JsonDocument &doc, String &response);
+  void testConnection(JsonDocument &doc, String &response);
 
 private:
   unsigned long lastHeartBeat = 0;

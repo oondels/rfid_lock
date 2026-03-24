@@ -21,6 +21,7 @@ public:
   std::vector<unsigned long> loadAccessHistory();
   std::vector<unsigned long> getAll();
   bool clearMemory();
+  bool clearRFIDs();
 
 private:
   std::vector<unsigned long> allowedRFIDs;
