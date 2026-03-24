@@ -15,7 +15,7 @@ interface ExtendedWebSocket extends WsWebSocket {
 }
 
 type PendingRequest = {
-  resolve: () => void;
+  resolve: (data: Record<string, unknown>) => void;
   reject: (error: Error) => void;
   timer: NodeJS.Timeout;
   command: string;
@@ -122,7 +122,7 @@ wss.on("connection", (ws: ExtendedWebSocket) => {
           return;
         }
 
-        pendingRequest.resolve();
+        pendingRequest.resolve(data.callBack as Record<string, unknown>);
       }
     } catch (e) {
       console.error("Error parsing client message!", e);
@@ -185,7 +185,7 @@ app.get("/", (req: Request, res: Response) => {
 });
 
 // Send a especific command to a client, and wait for asnwer
-const sendCommand = (client: ExtendedWebSocket, command: string, payload: object): Promise<void> => {
+const sendCommand = (client: ExtendedWebSocket, command: string, payload: object): Promise<Record<string, unknown>> => {
   return new Promise((resolve, reject) => {
     if (client.readyState !== WsWebSocket.OPEN) {
       reject(new Error("Client is not connected."));
@@ -231,9 +231,9 @@ const getAllRFIDHandler: RequestHandler = async (req: Request, res: Response, ne
       return;
     }
 
-    await sendCommand(client, "get_all", { client: client_id });
+    const result = await sendCommand(client, "get_all", { client: client_id });
 
-    res.status(200).json({ message: "RFIDs retrieved successfully." });
+    res.status(200).json({ rfids: result?.rfids_list ?? [] });
   } catch (error) {
     next(error);
   }
@@ -252,9 +252,12 @@ const getLastAccess: RequestHandler = async (req: Request, res: Response, next: 
       return;
     }
 
-    await sendCommand(client, "get_access_history", { client: client_id });
+    const result = await sendCommand(client, "get_access_history", { client: client_id });
 
-    res.status(200).json({ message: "Last Access retrieved successfully." });
+    res.status(200).json({
+      access_history: result?.access_history ?? [],
+      last_accessed_card: result?.last_accessed_card ?? null,
+    });
   } catch (error) {
     next(error);
   }
