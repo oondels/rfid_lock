@@ -1,8 +1,8 @@
 #include "WebSocketClient.h"
 
 // Connection parameters
-const unsigned long heartbeatInterval = 8000;
-const unsigned long connectionTimeout = 15000;
+const unsigned long heartbeatInterval = 3000;
+const unsigned long connectionTimeout = 30000;
 const unsigned long reconnectInterval = 5000;
 const unsigned long connectionAttemptTimeout = 10000; // Timeout for connection attempts
 

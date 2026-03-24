@@ -194,5 +194,4 @@ void loop()
   display.defaultMessage(wifiStatus, wsStatus);
 
   display.defaultMessageOff();
-  delay(100);
 }
