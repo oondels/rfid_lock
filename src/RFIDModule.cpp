@@ -70,10 +70,13 @@ unsigned long RFIDModule::getLastAccessedCardId() const
 void RFIDModule::clearAccessHistory(JsonDocument &doc, String &response)
 {
   String client = doc["client"] | "";
-  String command = doc["command"] | "get_access_history";
+  String command = doc["command"] | "clear_history";
+  String requestId = doc["requestId"] | "";
   StaticJsonDocument<256> respDoc;
   respDoc["callBack"]["client"] = client;
   respDoc["callBack"]["command"] = command;
+  if (requestId != "")
+    respDoc["callBack"]["requestId"] = requestId;
   respDoc["callBack"]["status"] = "success";
   respDoc["callBack"]["message"] = "Access history cleared";
   serializeJson(respDoc, response);

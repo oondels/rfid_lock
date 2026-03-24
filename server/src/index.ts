@@ -5,14 +5,21 @@ import helmet from "helmet";
 import logger from "./utils/logger";
 import dotenv from "dotenv";
 import { WebSocketServer, WebSocket as WsWebSocket } from "ws";
+import { randomUUID } from "crypto";
 dotenv.config();
 
 interface ExtendedWebSocket extends WsWebSocket {
   id?: string;
-  requestStatus?: boolean;
   isAlive?: boolean;
   lastHeartBeat: number;
 }
+
+type PendingRequest = {
+  resolve: () => void;
+  reject: (error: Error) => void;
+  timer: NodeJS.Timeout;
+  command: string;
+};
 
 const app = express();
 const port = 3010;
@@ -25,8 +32,23 @@ app.use(cors());
 app.use(express.json());
 
 let connectedClients = new Map<string, ExtendedWebSocket>();
+const pendingRequests = new Map<string, PendingRequest>();
 const heartBeatInterval = 10000;
 const clientTimeout = 15000;
+
+const pendingKey = (clientId: string, requestId: string): string => `${clientId}:${requestId}`;
+
+const clearPendingRequestsForClient = (clientId: string, reason: string): void => {
+  for (const [key, request] of pendingRequests) {
+    if (!key.startsWith(`${clientId}:`)) {
+      continue;
+    }
+
+    clearTimeout(request.timer);
+    request.reject(new Error(reason));
+    pendingRequests.delete(key);
+  }
+};
 
 wss.on("connection", (ws: ExtendedWebSocket) => {
   ws.isAlive = true;
@@ -43,43 +65,64 @@ wss.on("connection", (ws: ExtendedWebSocket) => {
 
     try {
       const data = JSON.parse(message);
+      ws.isAlive = true;
+      ws.lastHeartBeat = Date.now();
 
       // Handle heartbeat from client
       if (data.type === 'heartbeat') {
-        ws.isAlive = true;
-        ws.lastHeartBeat = Date.now();
         ws.send(JSON.stringify({ type: 'heartbeat_ack', timeStamp: Date.now() }))
         return;
       }
 
       if (data.nome) {
-        if (connectedClients.has(data.nome)) {
-          logger.warn("Client", `Client ${data.nome} already connected...`);
-        } else {
-          ws.id = data.nome;
-          ws.requestStatus = false;
-          logger.info("Client", `New client connected: ${ws.id}`);
-          connectedClients.set(data.nome, ws);
+        const existingClient = connectedClients.get(data.nome);
+        if (existingClient && existingClient !== ws) {
+          logger.warn("Client", `Replacing existing connection for client ${data.nome}`);
+          clearPendingRequestsForClient(data.nome, "Client connection replaced.");
+          existingClient.terminate();
         }
+
+        ws.id = data.nome;
+        connectedClients.set(data.nome, ws);
+        logger.info("Client", `Client registered: ${ws.id}`);
       }
-      client = connectedClients.get(ws.id as string);
+      client = ws.id ? connectedClients.get(ws.id) : undefined;
 
       if (data.status === 'ok') {
         if (ws.id && connectedClients.has(ws.id)) {
-          // TODO: If not found client, take some action
-          if (client) {
-            client.requestStatus = true;
-            logger.info("Client", `${ws.id}: Connection established!`)
-          }
+          logger.info("Client", `${ws.id}: Connection established!`)
         }
       }
 
       // Handles client's request answer
-      //! Melhorar tratamento de resposta do cliente e fazer respostas personalizadas
-      if (data.callBack && client) {
-        logger.info("Client", `Response from client: ${data.callBack.client} for command: ${data?.callBack?.command}`)
+      if (data.callBack && client && ws.id) {
+        const requestId = data?.callBack?.requestId;
+        const command = data?.callBack?.command;
+        const status = data?.callBack?.status;
 
-        client.requestStatus = true;
+        if (!requestId || typeof requestId !== "string") {
+          logger.warn("Client", `Ignoring callback without requestId from ${ws.id}`);
+          return;
+        }
+
+        const key = pendingKey(ws.id, requestId);
+        const pendingRequest = pendingRequests.get(key);
+        if (!pendingRequest) {
+          logger.warn("Client", `No pending request found for ${ws.id} and requestId ${requestId}`);
+          return;
+        }
+
+        clearTimeout(pendingRequest.timer);
+        pendingRequests.delete(key);
+
+        logger.info("Client", `Response from client: ${ws.id} for command: ${command}`)
+        if (status === "error") {
+          const errorMsg = data?.error || "Client returned error status.";
+          pendingRequest.reject(new Error(errorMsg));
+          return;
+        }
+
+        pendingRequest.resolve();
       }
     } catch (e) {
       console.error("Error parsing client message!", e);
@@ -88,6 +131,7 @@ wss.on("connection", (ws: ExtendedWebSocket) => {
 
   ws.on("close", () => {
     if (ws.id) {
+      clearPendingRequestsForClient(ws.id, "Client disconnected.");
       connectedClients.delete(ws.id);
       logger.info("Client", `Client disconnected: ${ws.id}`);
     }
@@ -96,6 +140,7 @@ wss.on("connection", (ws: ExtendedWebSocket) => {
   ws.on("error", (error) => {
     logger.error("Client", `WebSocket error for ${ws.id}: ${error.message}`);
     if (ws.id) {
+      clearPendingRequestsForClient(ws.id, "Client connection error.");
       connectedClients.delete(ws.id);
     }
   });
@@ -142,25 +187,37 @@ app.get("/", (req: Request, res: Response) => {
 // Send a especific command to a client, and wait for asnwer
 const sendCommand = (client: ExtendedWebSocket, command: string, payload: object): Promise<void> => {
   return new Promise((resolve, reject) => {
-    client.requestStatus = false;
     if (client.readyState !== WsWebSocket.OPEN) {
       reject(new Error("Client is not connected."));
       return;
     }
 
-    client.send(JSON.stringify({ command, ...payload, }));
+    if (!client.id) {
+      reject(new Error("Client is not registered."));
+      return;
+    }
 
+    const requestId = randomUUID();
+    const key = pendingKey(client.id, requestId);
     const timer = setTimeout(() => {
-      reject(new Error("Timeout waiting client response!"));
+      pendingRequests.delete(key);
+      reject(new Error(`Timeout waiting response for command ${command}.`));
     }, 3000);
 
-    const checkResponse = setInterval(() => {
-      if (client.requestStatus) {
-        clearInterval(checkResponse);
-        clearTimeout(timer);
-        resolve();
-      }
-    }, 100);
+    pendingRequests.set(key, {
+      resolve,
+      reject,
+      timer,
+      command,
+    });
+
+    try {
+      client.send(JSON.stringify({ command, requestId, ...payload }));
+    } catch (error) {
+      clearTimeout(timer);
+      pendingRequests.delete(key);
+      reject(error as Error);
+    }
   });
 };
 
@@ -224,6 +281,7 @@ const clearHistory: RequestHandler = async (req: Request, res: Response, next: N
   }
 };
 app.get("/api/clear_history/:client_id", clearHistory);
+app.post("/api/clear_history/:client_id", clearHistory);
 
 const addRFIDHandler: RequestHandler = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -266,7 +324,7 @@ const removeRFIDHandler: RequestHandler = async (req: Request, res: Response, ne
       return;
     }
 
-    await sendCommand(client, "remove_rfid", { rfid });
+    await sendCommand(client, "remove_rfid", { rfid, client: client_id });
 
     res.status(201).json({ message: "RFID removed successfully." });
   } catch (error) {
@@ -318,10 +376,19 @@ const openLockHandler: RequestHandler = async (req: Request, res: Response, next
     const { client_id } = req.params;
     const { verificationKey } = req.body;
 
-    // if (verificationKey !== process.env.VERIFICATION_KEY) {
-    //   res.status(403).json({ message: "Invalid verification key." });
-    //   return;
-    // }
+    if (!process.env.VERIFICATION_KEY) {
+      logger.warn("Server", "VERIFICATION_KEY is not configured. Open lock endpoint is using fallback mode.");
+    } else {
+      if (!verificationKey || typeof verificationKey !== "string") {
+        res.status(400).json({ message: "verificationKey is required." });
+        return;
+      }
+
+      if (verificationKey !== process.env.VERIFICATION_KEY) {
+        res.status(403).json({ message: "Invalid verification key." });
+        return;
+      }
+    }
 
     const client = connectedClients.get(client_id);
     if (!client || client.readyState !== WsWebSocket.OPEN) {

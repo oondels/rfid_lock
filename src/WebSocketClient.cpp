@@ -1,15 +1,10 @@
 #include "WebSocketClient.h"
 
 // Connection parameters
-unsigned long lastHeartBeat = 0;
 const unsigned long heartbeatInterval = 8000;
 const unsigned long connectionTimeout = 15000;
 const unsigned long reconnectInterval = 5000;
 const unsigned long connectionAttemptTimeout = 10000; // Timeout for connection attempts
-bool websocketConnected = false;
-bool aswerEvent = false;
-unsigned long lastServerResponse = 0;
-unsigned long connectionStartTime = 0;
 
 WebSocketClient::WebSocketClient(const char *door_name, const char *server, Storage *storage, Actuator *actuator, RFIDModule *rfidModule)
     : serverUrl(server), storage(storage), actuator(actuator), rfidModule(rfidModule), door_name(door_name)
@@ -20,6 +15,11 @@ WebSocketClient::WebSocketClient(const char *door_name, const char *server, Stor
 
 void WebSocketClient::setupEventHandlers()
 {
+  if (handlersConfigured)
+  {
+    return;
+  }
+
   client.onEvent([this](WebsocketsEvent event, String data)
                  {
     unsigned long now = millis();
@@ -36,6 +36,8 @@ void WebSocketClient::setupEventHandlers()
       lastServerResponse = now;
       client.pong();
     } });
+
+  handlersConfigured = true;
 }
 
 void WebSocketClient::begin()
@@ -46,7 +48,7 @@ void WebSocketClient::begin()
     Serial.println("Initiating connection to WebSocket server...");
     connectionStartTime = millis();
     client.connect(serverUrl);
-    aswerEvent = true;
+    answerEventPending = true;
   }
 }
 
@@ -74,8 +76,6 @@ bool WebSocketClient::loop()
     // Handle reconnection
     if (!websocketConnected && WiFi.status() == WL_CONNECTED)
     {
-      static unsigned long lastReconnectAttempt = 0;
-
       if (now - lastReconnectAttempt > reconnectInterval)
       {
         Serial.println("Attempting to reconnect to WebSocket server...");
@@ -87,7 +87,7 @@ bool WebSocketClient::loop()
         setupEventHandlers();
 
         client.connect(serverUrl);
-        aswerEvent = true;
+        answerEventPending = true;
         connectionStartTime = now;
         lastReconnectAttempt = now;
       }
@@ -101,10 +101,10 @@ bool WebSocketClient::loop()
       }
     }
 
-    if (aswerEvent && websocketConnected)
+    if (answerEventPending && websocketConnected)
     {
       sendEvent("{\"status\": \"ok\"}");
-      aswerEvent = false;
+      answerEventPending = false;
     }
 
     if (statusCallback)
@@ -188,13 +188,15 @@ void WebSocketClient::sendHeartbeat()
   }
 }
 
-void WebSocketClient::sendErrorResponse(const String &client, const String &command, const String &errorMsg, String &response)
+void WebSocketClient::sendErrorResponse(const String &client, const String &command, const String &errorMsg, String &response, const String &requestId)
 {
   StaticJsonDocument<128> respDoc;
   if (client != "")
     respDoc["callBack"]["client"] = client;
   if (command != "")
     respDoc["callBack"]["command"] = command;
+  if (requestId != "")
+    respDoc["callBack"]["requestId"] = requestId;
   respDoc["error"] = errorMsg;
   respDoc["callBack"]["status"] = "error";
   serializeJson(respDoc, response);
@@ -205,9 +207,10 @@ bool WebSocketClient::addRfid(JsonDocument &doc, String &response)
   bool status = false;
   String client = doc["client"] | "";
   String command = doc["command"] | "add_rfids";
+  String requestId = doc["requestId"] | "";
   if (!doc.containsKey("rfids"))
   {
-    this->sendErrorResponse(client, command, "Missing rfids field", response);
+    this->sendErrorResponse(client, command, "Missing rfids field", response, requestId);
     return status;
   }
 
@@ -215,6 +218,8 @@ bool WebSocketClient::addRfid(JsonDocument &doc, String &response)
   StaticJsonDocument<128> respDoc;
   respDoc["callBack"]["client"] = client;
   respDoc["callBack"]["command"] = command;
+  if (requestId != "")
+    respDoc["callBack"]["requestId"] = requestId;
   if (added <= 0)
   {
     respDoc["error"] = "Failed to add rfids";
@@ -238,11 +243,14 @@ bool WebSocketClient::removeRfid(JsonDocument &doc, String &response)
 
   String client = doc["client"] | "";
   String command = doc["command"] | "remove_rfid";
+  String requestId = doc["requestId"] | "";
   respDoc["callBack"]["client"] = client;
   respDoc["callBack"]["command"] = command;
+  if (requestId != "")
+    respDoc["callBack"]["requestId"] = requestId;
   if (!doc.containsKey("rfid"))
   {
-    this->sendErrorResponse(client, command, "Missing rfid field", response);
+    this->sendErrorResponse(client, command, "Missing rfid field", response, requestId);
     return status;
   }
 
@@ -268,9 +276,12 @@ void WebSocketClient::getAllRfid(JsonDocument &doc, String &response)
 {
   String client = doc["client"] | "";
   String command = doc["command"] | "get_all";
+  String requestId = doc["requestId"] | "";
   StaticJsonDocument<128> respDoc;
   respDoc["callBack"]["client"] = client;
   respDoc["callBack"]["command"] = command;
+  if (requestId != "")
+    respDoc["callBack"]["requestId"] = requestId;
 
   std::vector<unsigned long> rfids_list = storage->getAll();
   // Cria array json para lista de rfids
@@ -289,9 +300,12 @@ void WebSocketClient::openDoor(JsonDocument &doc, String &response)
   Serial.println();
   String client = doc["client"] | "";
   String command = doc["command"] | "open_door";
+  String requestId = doc["requestId"] | "";
   StaticJsonDocument<128> respDoc;
   respDoc["callBack"]["client"] = client;
   respDoc["callBack"]["command"] = command;
+  if (requestId != "")
+    respDoc["callBack"]["requestId"] = requestId;
 
   actuator->open();
   respDoc["callBack"]["status"] = "success";
@@ -303,9 +317,12 @@ void WebSocketClient::getAccessHistory(JsonDocument &doc, String &response)
 {
   String client = doc["client"] | "";
   String command = doc["command"] | "get_access_history";
+  String requestId = doc["requestId"] | "";
   StaticJsonDocument<256> respDoc;
   respDoc["callBack"]["client"] = client;
   respDoc["callBack"]["command"] = command;
+  if (requestId != "")
+    respDoc["callBack"]["requestId"] = requestId;
 
   std::vector<unsigned long> accessHistory = rfidModule->getLastAccesses();
   unsigned long lastCardId = rfidModule->getLastAccessedCardId();

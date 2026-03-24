@@ -17,7 +17,7 @@ public:
   void setCommandCallback(void (*callback)(const String &command, JsonDocument &doc));
   void setStatusCallback(void (*callback)(bool));
   void sendEvent(const String &eventJson);
-  void sendErrorResponse(const String &client, const String &command, const String &errorMsg, String &response);
+  void sendErrorResponse(const String &client, const String &command, const String &errorMsg, String &response, const String &requestId = "");
   bool addRfid(JsonDocument &doc, String &response);
   bool removeRfid(JsonDocument &doc, String &response);
   void getAllRfid(JsonDocument &doc, String &response);
@@ -25,6 +25,14 @@ public:
   void getAccessHistory(JsonDocument &doc, String &response);
 
 private:
+  unsigned long lastHeartBeat = 0;
+  unsigned long lastServerResponse = 0;
+  unsigned long connectionStartTime = 0;
+  unsigned long lastReconnectAttempt = 0;
+  bool websocketConnected = false;
+  bool answerEventPending = false;
+  bool handlersConfigured = false;
+
   const char *door_name;
   RFIDModule *rfidModule;
   WebsocketsClient client;

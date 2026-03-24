@@ -77,7 +77,8 @@ void handleWebSocketCommand(const String &command, JsonDocument &doc)
   else
   {
     String client = doc["client"] | "";
-    wsClient.sendErrorResponse(client, command, "Unknown command", response);
+    String requestId = doc["requestId"] | "";
+    wsClient.sendErrorResponse(client, command, "Unknown command", response, requestId);
     return;
   }
   wsClient.sendEvent(response);
@@ -125,37 +126,37 @@ void setup()
   // storage.clearMemory();
 
   // Add Rfids
-  unsigned long allowedRFIDsArray[] = {
-      2269219895, // Hendrius
-      3625882750, // Ramon
-      3416347418, // Guedes
-      2617777157, // Miqueias
-      1455116486, // Uilliam
-      3628015726, // Bertolino 
-      // 2629318421, // Hellen
-      2409447214, // Leone
-      3298720930, // Sergio 
-      3047181186, // Edilson
-      3046795490, // Renilson - Café 
-      377341517, // Victor Eletricista
-      165907952, // Ramon - Café
-      2773097371, // Marcos,
-      4125357762, // João Victor
-      2619281925, // Carla Costa Limpeza
-      2674278899, // Tag azul extra
-      3625660014, // Andre, portaria
-      3626186062, // portaria 01
-      3624067710, // portaria 02
-      2618688053, // Joseane
-    };
+  // unsigned long allowedRFIDsArray[] = {
+  //     2269219895, // Hendrius
+  //     3625882750, // Ramon
+  //     3416347418, // Guedes
+  //     2617777157, // Miqueias
+  //     1455116486, // Uilliam
+  //     3628015726, // Bertolino 
+  //     // 2629318421, // Hellen
+  //     2409447214, // Leone
+  //     3298720930, // Sergio 
+  //     3047181186, // Edilson
+  //     3046795490, // Renilson - Café 
+  //     377341517, // Victor Eletricista
+  //     165907952, // Ramon - Café
+  //     2773097371, // Marcos,
+  //     4125357762, // João Victor
+  //     2619281925, // Carla Costa Limpeza
+  //     2674278899, // Tag azul extra
+  //     3625660014, // Andre, portaria
+  //     3626186062, // portaria 01
+  //     3624067710, // portaria 02
+  //     2618688053, // Joseane
+  //   };
 
-  JsonDocument doc;
-  JsonArray arr = doc["rfids"].to<JsonArray>();
-  for (auto rfid : allowedRFIDsArray)
-    arr.add(rfid);
+  // JsonDocument doc;
+  // JsonArray arr = doc["rfids"].to<JsonArray>();
+  // for (auto rfid : allowedRFIDsArray)
+  //   arr.add(rfid);
 
-  int added = storage.addRFIDs(doc); // persists internally
-  Serial.printf("Added %d new RFIDs\n", added);
+  // int added = storage.addRFIDs(doc); // persists internally
+  // Serial.printf("Added %d new RFIDs\n", added);
 
   display.showMessage("WIFI", "Conectando Wifi");
   wifiClient.begin();
