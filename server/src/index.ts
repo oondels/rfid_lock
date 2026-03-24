@@ -34,7 +34,7 @@ app.use(express.json());
 let connectedClients = new Map<string, ExtendedWebSocket>();
 const pendingRequests = new Map<string, PendingRequest>();
 const heartBeatInterval = 10000;
-const clientTimeout = 15000;
+const clientTimeout = 30000;
 
 const pendingKey = (clientId: string, requestId: string): string => `${clientId}:${requestId}`;
 
